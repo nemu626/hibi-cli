@@ -9,6 +9,8 @@
   },
   "scripts": {
     "dev": "bun run src/index.ts",
+    "start": "bun run src/index.ts",
+    "build": "bun build src/index.ts --compile --outfile dist/hibi",
     "test": "bun test",
     "lint": "biome lint src",
     "format": "biome format --write src",
