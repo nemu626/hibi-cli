@@ -29,9 +29,9 @@ root/
 # {yyyy-mm-dd}
 
 ## Todo
-  - [ ] 水やり
-  - [ ] 料理
-    - [ ] おにぎり
+  - [x] 水やり
+  - [x] 料理
+    - [x] おにぎり
     - [ ] 目玉焼き
 
 ## Memo
@@ -45,21 +45,56 @@ root/
         print("hibi")
 ```
 
+
+## Summary by LLM
+本日、水やりと料理をした。一部のpythonコードが分からなかった
+
+
+## Log By LLM
+###### Shell Log
+```
+touch hibi.py
+vi hibi.py
+```
+###### Git Commit Log
+- `@abc123` on `hibiPy`: feat:hibi.pyを新規作成
+- `@def456` on `hibiPy`: fix:hibi.pyを編集
+
+###### Summary by LLM
+ユーザーは、hibiPyプロジェクトで、hibi.pyを編集した。
+
 ````
 
 ### 設定ファイル (Config)
-`hibi.yaml` でツール全体の挙動を制御します。
+`hibi.yaml` は2階層で管理され、プロジェクト設定がグローバル設定を上書きします。
+
+| 優先度 | パス | 用途 |
+|--------|------|------|
+| 低 | `~/.config/hibi/hibi.yaml` | ユーザーごとのグローバル設定 |
+| 高 | `<projectRoot>/hibi.yaml` | プロジェクト固有の設定（上書き） |
 
 ```yaml
-remote: 'origin' # リモートレポジトリ名
-sync: "manual" # manual | auto | daily
+# ~/.config/hibi/hibi.yaml (グローバル設定例)
 llm:
   provider: "openai" # openai | ollama | gemini | none
   model: "gpt-4o"
-  apiKey: "sk-..." # 環境変数でのOverrideも可能にする
+  apiKey: "sk-..." # 環境変数 HIBI_LLM_API_KEY でも設定可能
   endpoint: "..." # Ollama等の場合
-editor: "vi" # デフォルトはシステムのエディタ
+editor: "vi" # デフォルトはシステムの $EDITOR
+defaultProject: "default" # 起動時のデフォルトプロジェクト
 ```
+
+```yaml
+# <projectRoot>/hibi.yaml (プロジェクト設定例)
+remote: 'origin' # リモートレポジトリ名
+sync: "manual" # manual | auto | daily
+llm:
+  provider: "ollama" # このプロジェクトではOllamaを使用
+  model: "llama3"
+```
+
+> [!NOTE]
+> 設定のマージはshallow merge（第一階層のみ）で行う。`llm` ブロック全体を上書きする場合は、必要なキーをすべて指定する必要がある。
 
 ## 機能仕様 (Feature Specifications)
 
@@ -98,6 +133,7 @@ editor: "vi" # デフォルトはシステムのエディタ
   - `hibi done [-l|--last|--pop]`: 最後に登録したタスクを完了にする。
   - `hibi done [-a|--all]`: すべてのタスクを完了にする。
   - `hibi done [-f|--first]`: タスクの最上段を完了にする。
+  - **親子タスクの挙動**: 親タスクを完了すると、すべての子タスクも自動的に完了になる。
   - done task completion
     - `omelette`をつかい、zshにcompletionを実行させる。
     - `.zshrc`に hibi --completion-zshのようなものを登録。
@@ -121,11 +157,14 @@ editor: "vi" # デフォルトはシステムのエディタ
   - LLMにコンテキストとして渡し、「やったこと」リストを生成して日報に追記。
 - **サマリ生成 (`summary`)**:
   - 今日の日報内容を要約。
+- **エラーハンドリング**:
+  - LLM Providerが未設定（`none`）または接続不可の場合、エラーメッセージを返して処理を中断する。
 
 ### 5. Web UI (`web`)
 
 - ローカルサーバーを起動し、ブラウザで閲覧・編集。
 - 前提: シンプルで高速、AestheticなUI。
+- **認証**: 不要（localhost限定のため）。
 - **サイドバー**: プロジェクト一覧、日付一覧（カレンダー等）。
 - **エディタ**: コンテンツの表示。チェックボックスなどはインタラクティブに操作可能（クリックでMarkdown更新）。
 
