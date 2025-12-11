@@ -3,38 +3,19 @@
  */
 
 import { afterEach, beforeEach, describe, expect, it } from "bun:test";
-import { spawnSync } from "node:child_process";
-import { existsSync, mkdirSync, readFileSync, rmSync } from "node:fs";
-import { tmpdir } from "node:os";
+import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
-
-const CLI_PATH = join(import.meta.dir, "../../../src/index.ts");
-
-function runHibi(
-    args: string[],
-    cwd: string,
-): { stdout: string; stderr: string; exitCode: number } {
-    const result = spawnSync("bun", ["run", CLI_PATH, ...args], {
-        cwd,
-        encoding: "utf-8",
-    });
-    return {
-        stdout: result.stdout || "",
-        stderr: result.stderr || "",
-        exitCode: result.status ?? 1,
-    };
-}
+import { runHibi, setupTestEnv, teardownTestEnv } from "../helpers/test-utils";
 
 describe("init command", () => {
     let testDir: string;
 
     beforeEach(() => {
-        testDir = join(tmpdir(), `hibi-init-test-${Date.now()}`);
-        mkdirSync(testDir, { recursive: true });
+        testDir = setupTestEnv("hibi-init-test");
     });
 
     afterEach(() => {
-        rmSync(testDir, { recursive: true, force: true });
+        teardownTestEnv(testDir);
     });
 
     it("正常: ディレクトリ構造 + hibi.yaml作成", () => {

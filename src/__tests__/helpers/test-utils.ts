@@ -23,6 +23,10 @@ export interface HibiResult {
 export function runHibi(args: string[], cwd: string): HibiResult {
     const result = spawnSync("bun", ["run", CLI_PATH, ...args], {
         cwd,
+        env: {
+            ...process.env,
+            HIBI_CONFIG_DIR: join(cwd, ".hibi_config"),
+        },
         encoding: "utf-8",
     });
     return {

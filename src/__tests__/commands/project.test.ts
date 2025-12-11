@@ -3,44 +3,20 @@
  */
 
 import { afterEach, beforeEach, describe, expect, it } from "bun:test";
-import { spawnSync } from "node:child_process";
-import { existsSync, mkdirSync, rmSync, writeFileSync } from "node:fs";
-import { tmpdir } from "node:os";
+import { existsSync } from "node:fs";
 import { join } from "node:path";
-
-const CLI_PATH = join(import.meta.dir, "../../../src/index.ts");
-
-function runHibi(
-    args: string[],
-    cwd: string,
-): { stdout: string; stderr: string; exitCode: number } {
-    const result = spawnSync("bun", ["run", CLI_PATH, ...args], {
-        cwd,
-        encoding: "utf-8",
-    });
-    return {
-        stdout: result.stdout || "",
-        stderr: result.stderr || "",
-        exitCode: result.status ?? 1,
-    };
-}
-
-function initProject(dir: string): void {
-    mkdirSync(join(dir, "projects", "default", "daily"), { recursive: true });
-    writeFileSync(join(dir, "hibi.yaml"), "remote: origin\n");
-}
+import { initProjectManually, runHibi, setupTestEnv, teardownTestEnv } from "../helpers/test-utils";
 
 describe("project command", () => {
     let testDir: string;
 
     beforeEach(() => {
-        testDir = join(tmpdir(), `hibi-project-test-${Date.now()}`);
-        mkdirSync(testDir, { recursive: true });
-        initProject(testDir);
+        testDir = setupTestEnv("hibi-project-test");
+        initProjectManually(testDir);
     });
 
     afterEach(() => {
-        rmSync(testDir, { recursive: true, force: true });
+        teardownTestEnv(testDir);
     });
 
     describe("list", () => {
