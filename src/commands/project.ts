@@ -3,18 +3,16 @@
  * プロジェクト管理
  */
 
+import { existsSync, mkdirSync, readdirSync, renameSync } from "node:fs";
+import { join } from "node:path";
 import { Command } from "commander";
-import { existsSync, mkdirSync, readdirSync, renameSync } from "fs";
-import { join } from "path";
-import { loadConfig, loadGlobalConfig, saveGlobalConfig, requireProjectRoot } from "../lib/config";
+import { loadConfig, loadGlobalConfig, requireProjectRoot, saveGlobalConfig } from "../lib/config";
 
 /**
  * projectコマンドを作成
  */
 export function createProjectCommand(): Command {
-    const command = new Command("project")
-        .alias("p")
-        .description("プロジェクト管理");
+    const command = new Command("project").alias("p").description("プロジェクト管理");
 
     // サブコマンド: list
     command

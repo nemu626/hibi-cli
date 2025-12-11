@@ -2,11 +2,11 @@
  * Hibi CLI - 設定ファイル管理
  */
 
-import { existsSync, mkdirSync, readFileSync, writeFileSync } from "fs";
+import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
+import { join } from "node:path";
 import { parse, stringify } from "yaml";
 import type { GlobalConfig, HibiConfig, ProjectConfig } from "../types";
-import { getGlobalConfigDir, getGlobalConfigPath, findProjectRoot } from "./utils";
-import { join } from "path";
+import { findProjectRoot, getGlobalConfigDir, getGlobalConfigPath } from "./utils";
 
 /**
  * デフォルトのグローバル設定
@@ -41,7 +41,7 @@ export function loadGlobalConfig(): GlobalConfig {
         const content = readFileSync(configPath, "utf-8");
         const config = parse(content) as GlobalConfig;
         return { ...DEFAULT_GLOBAL_CONFIG, ...config };
-    } catch (error) {
+    } catch (_error) {
         console.error(`警告: グローバル設定の読み込みに失敗しました: ${configPath}`);
         return DEFAULT_GLOBAL_CONFIG;
     }
@@ -61,7 +61,7 @@ export function loadProjectConfig(projectRoot: string): ProjectConfig {
         const content = readFileSync(configPath, "utf-8");
         const config = parse(content) as ProjectConfig;
         return { ...DEFAULT_PROJECT_CONFIG, ...config };
-    } catch (error) {
+    } catch (_error) {
         console.error(`警告: プロジェクト設定の読み込みに失敗しました: ${configPath}`);
         return DEFAULT_PROJECT_CONFIG;
     }

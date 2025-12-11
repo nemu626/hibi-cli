@@ -2,8 +2,8 @@
  * Hibi CLI - 日報ファイル管理
  */
 
-import { existsSync, mkdirSync, readFileSync, writeFileSync } from "fs";
-import { dirname } from "path";
+import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
+import { dirname } from "node:path";
 import type { Task } from "../types";
 import { formatDateString, getDailyFilePath, getTodayString } from "./utils";
 
@@ -32,7 +32,7 @@ export function generateDailyTemplate(dateStr: string): string {
 export function dailyFileExists(
     projectRoot: string,
     projectName: string = "default",
-    dateStr: string = getTodayString()
+    dateStr: string = getTodayString(),
 ): boolean {
     const filePath = getDailyFilePath(projectRoot, projectName, dateStr);
     return existsSync(filePath);
@@ -44,7 +44,7 @@ export function dailyFileExists(
 export function ensureDailyFile(
     projectRoot: string,
     projectName: string = "default",
-    dateStr: string = getTodayString()
+    dateStr: string = getTodayString(),
 ): string {
     const filePath = getDailyFilePath(projectRoot, projectName, dateStr);
 
@@ -66,7 +66,7 @@ export function ensureDailyFile(
 export function readDailyFile(
     projectRoot: string,
     projectName: string = "default",
-    dateStr: string = getTodayString()
+    dateStr: string = getTodayString(),
 ): string {
     const filePath = getDailyFilePath(projectRoot, projectName, dateStr);
 
@@ -84,7 +84,7 @@ export function writeDailyFile(
     projectRoot: string,
     content: string,
     projectName: string = "default",
-    dateStr: string = getTodayString()
+    dateStr: string = getTodayString(),
 ): void {
     const filePath = ensureDailyFile(projectRoot, projectName, dateStr);
     writeFileSync(filePath, content, "utf-8");
@@ -149,7 +149,7 @@ export function addTask(
     projectRoot: string,
     taskText: string,
     projectName: string = "default",
-    dateStr: string = getTodayString()
+    dateStr: string = getTodayString(),
 ): void {
     ensureDailyFile(projectRoot, projectName, dateStr);
     const content = readDailyFile(projectRoot, projectName, dateStr);
@@ -199,7 +199,7 @@ export function completeTask(
     projectRoot: string,
     taskText: string,
     projectName: string = "default",
-    dateStr: string = getTodayString()
+    dateStr: string = getTodayString(),
 ): boolean {
     const content = readDailyFile(projectRoot, projectName, dateStr);
     const lines = content.split("\n");
@@ -211,7 +211,7 @@ export function completeTask(
 
         // 未完了タスクでテキストがマッチするものを探す
         const match = line.match(/^(\s*)- \[ \]\s*(.+)$/);
-        if (match && match[2]?.includes(taskText)) {
+        if (match?.[2]?.includes(taskText)) {
             const indent = match[1] || "";
             lines[i] = `${indent}- [x] ${match[2]}`;
             found = true;
@@ -233,7 +233,7 @@ export function addMemo(
     projectRoot: string,
     memoText: string,
     projectName: string = "default",
-    dateStr: string = getTodayString()
+    dateStr: string = getTodayString(),
 ): void {
     ensureDailyFile(projectRoot, projectName, dateStr);
     const content = readDailyFile(projectRoot, projectName, dateStr);

@@ -3,11 +3,11 @@
  * 日報ファイルをエディタで開く
  */
 
+import { spawn } from "node:child_process";
 import { Command } from "commander";
-import { spawn } from "child_process";
 import { loadConfig, requireProjectRoot } from "../lib/config";
 import { ensureDailyFile } from "../lib/daily";
-import { getTodayString, getDailyFilePath } from "../lib/utils";
+import { getDailyFilePath, getTodayString } from "../lib/utils";
 
 /**
  * editコマンドを作成
@@ -58,4 +58,3 @@ function editDaily(options: { date?: string }): void {
         }
     });
 }
-

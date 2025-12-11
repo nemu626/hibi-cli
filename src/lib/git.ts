@@ -2,7 +2,7 @@
  * Hibi CLI - Git操作
  */
 
-import { spawn } from "child_process";
+import { spawn } from "node:child_process";
 
 export interface GitResult {
     success: boolean;
@@ -109,7 +109,7 @@ export async function gitClone(repoUrl: string, targetDir: string): Promise<GitR
 export async function getGitLog(
     cwd: string,
     since?: string,
-    limit: number = 50
+    limit: number = 50,
 ): Promise<GitResult> {
     const args = ["log", "--oneline", "-n", String(limit)];
     if (since) {
@@ -137,4 +137,3 @@ export async function commitChanges(cwd: string, message: string): Promise<GitRe
 
     return gitCommit(cwd, message);
 }
-

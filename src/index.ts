@@ -7,24 +7,20 @@
  */
 
 import { Command } from "commander";
-
+import { createDoneCommand } from "./commands/done";
+import { createEditCommand } from "./commands/edit";
 // コマンドのインポート
 import { createInitCommand } from "./commands/init";
 import { createListCommand } from "./commands/list";
-import { createTodoCommand } from "./commands/todo";
-import { createDoneCommand } from "./commands/done";
 import { createMemoCommand } from "./commands/memo";
-import { createEditCommand } from "./commands/edit";
-import { createSyncCommand } from "./commands/sync";
 import { createProjectCommand } from "./commands/project";
+import { createSyncCommand } from "./commands/sync";
+import { createTodoCommand } from "./commands/todo";
 
 // メインプログラム
 const program = new Command();
 
-program
-    .name("hibi")
-    .description("Developer向けCLI日報管理ツール")
-    .version("0.1.0");
+program.name("hibi").description("Developer向けCLI日報管理ツール").version("0.1.0");
 
 // コマンドを登録
 program.addCommand(createInitCommand());

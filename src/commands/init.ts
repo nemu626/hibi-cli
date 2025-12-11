@@ -3,11 +3,11 @@
  * プロジェクトの初期化を行う
  */
 
+import { existsSync, mkdirSync, writeFileSync } from "node:fs";
+import { join, resolve } from "node:path";
 import { Command } from "commander";
-import { existsSync, mkdirSync, writeFileSync } from "fs";
-import { join, resolve } from "path";
 import { saveProjectConfig } from "../lib/config";
-import { gitInit, gitClone, isGitRepo } from "../lib/git";
+import { gitClone, gitInit, isGitRepo } from "../lib/git";
 import type { ProjectConfig } from "../types";
 
 /**
@@ -16,7 +16,11 @@ import type { ProjectConfig } from "../types";
 export function createInitCommand(): Command {
     const command = new Command("init")
         .description("新しいhibiプロジェクトを初期化する")
-        .argument("[directory]", "プロジェクトディレクトリ（デフォルト: カレントディレクトリ）", ".")
+        .argument(
+            "[directory]",
+            "プロジェクトディレクトリ（デフォルト: カレントディレクトリ）",
+            ".",
+        )
         .option("--clone <url>", "既存のGitリポジトリをクローンして初期化")
         .option("--no-git", "Gitリポジトリを初期化しない")
         .action(async (directory: string, options: { clone?: string; git: boolean }) => {
@@ -31,7 +35,7 @@ export function createInitCommand(): Command {
  */
 async function initProject(
     directory: string,
-    options: { clone?: string; git: boolean }
+    options: { clone?: string; git: boolean },
 ): Promise<void> {
     const targetDir = resolve(directory);
 

@@ -2,9 +2,9 @@
  * Hibi CLI - ユーティリティ関数
  */
 
-import { existsSync } from "fs";
-import { homedir } from "os";
-import { join, dirname, parse } from "path";
+import { existsSync } from "node:fs";
+import { homedir } from "node:os";
+import { dirname, join, parse } from "node:path";
 
 /**
  * 今日の日付をYYYYMMDD形式で取得
@@ -78,7 +78,7 @@ export function getAssetsDir(projectRoot: string, projectName: string = "default
 export function getDailyFilePath(
     projectRoot: string,
     projectName: string = "default",
-    dateStr: string = getTodayString()
+    dateStr: string = getTodayString(),
 ): string {
     return join(getDailyDir(projectRoot, projectName), `${dateStr}.md`);
 }

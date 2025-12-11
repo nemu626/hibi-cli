@@ -5,7 +5,7 @@
 
 import { Command } from "commander";
 import { loadConfig, requireProjectRoot } from "../lib/config";
-import { completeTask, ensureDailyFile, readDailyFile, parseTasks } from "../lib/daily";
+import { completeTask, ensureDailyFile, parseTasks, readDailyFile } from "../lib/daily";
 import { getTodayString } from "../lib/utils";
 
 /**
@@ -20,14 +20,19 @@ export function createDoneCommand(): Command {
         .option("--pop", "最後に登録したタスクを完了（--lastのエイリアス）")
         .option("-f, --first", "最初のタスクを完了")
         .option("-a, --all", "すべてのタスクを完了")
-        .action((textParts: string[], options: { last?: boolean; pop?: boolean; first?: boolean; all?: boolean }) => {
-            const text = textParts.join(" ");
-            // --pop は --last のエイリアス
-            if (options.pop) {
-                options.last = true;
-            }
-            completeDoneTask(text, options);
-        });
+        .action(
+            (
+                textParts: string[],
+                options: { last?: boolean; pop?: boolean; first?: boolean; all?: boolean },
+            ) => {
+                const text = textParts.join(" ");
+                // --pop は --last のエイリアス
+                if (options.pop) {
+                    options.last = true;
+                }
+                completeDoneTask(text, options);
+            },
+        );
 
     return command;
 }
@@ -37,7 +42,7 @@ export function createDoneCommand(): Command {
  */
 function completeDoneTask(
     text: string,
-    options: { last?: boolean; first?: boolean; all?: boolean }
+    options: { last?: boolean; first?: boolean; all?: boolean },
 ): void {
     const projectRoot = requireProjectRoot();
     const config = loadConfig();

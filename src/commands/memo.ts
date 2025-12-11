@@ -3,12 +3,12 @@
  * メモを追加
  */
 
+import { copyFileSync, existsSync, mkdirSync, readFileSync } from "node:fs";
+import { basename, extname, join } from "node:path";
 import { Command } from "commander";
-import { existsSync, readFileSync, copyFileSync, mkdirSync } from "fs";
-import { basename, extname, join } from "path";
 import { loadConfig, requireProjectRoot } from "../lib/config";
 import { addMemo, ensureDailyFile, readDailyFile, writeDailyFile } from "../lib/daily";
-import { getTodayString, getAssetsDir } from "../lib/utils";
+import { getAssetsDir, getTodayString } from "../lib/utils";
 
 // 拡張子から言語を推測するマップ
 const EXTENSION_TO_LANGUAGE: Record<string, string> = {
@@ -61,9 +61,11 @@ export function createMemoCommand(): Command {
         .option("-a, --assets <path>", "ファイルをassetsに追加")
         .option("-f, --file <path>", "テキストファイルの内容をメモに追加")
         .option("-l, --line <range>", "行範囲を指定 (例: 1-10, 5)")
-        .action((textParts: string[], options: { assets?: string; file?: string; line?: string }) => {
-            handleMemo(textParts, options);
-        });
+        .action(
+            (textParts: string[], options: { assets?: string; file?: string; line?: string }) => {
+                handleMemo(textParts, options);
+            },
+        );
 
     return command;
 }
@@ -73,7 +75,7 @@ export function createMemoCommand(): Command {
  */
 function handleMemo(
     textParts: string[],
-    options: { assets?: string; file?: string; line?: string }
+    options: { assets?: string; file?: string; line?: string },
 ): void {
     const projectRoot = requireProjectRoot();
     const config = loadConfig();
@@ -148,7 +150,7 @@ function addFileContent(
     projectName: string,
     dateStr: string,
     filePath: string,
-    lineRange?: string
+    lineRange?: string,
 ): void {
     if (!existsSync(filePath)) {
         console.error(`エラー: ファイルが見つかりません: ${filePath}`);
@@ -208,7 +210,7 @@ function addFileContent(
     // コードブロックを挿入
     const codeBlock = [
         `<!-- ${basename(filePath)}:${startLine}-${endLine} -->`,
-        "```" + language,
+        `\`\`\`${language}`,
         selectedContent,
         "```",
         "",

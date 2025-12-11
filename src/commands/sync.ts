@@ -5,8 +5,8 @@
 
 import { Command } from "commander";
 import { loadConfig, requireProjectRoot } from "../lib/config";
-import { gitPull, gitPush, hasChanges, commitChanges, isGitRepo } from "../lib/git";
-import { getTodayString, formatDateString } from "../lib/utils";
+import { commitChanges, gitPull, gitPush, hasChanges, isGitRepo } from "../lib/git";
+import { formatDateString, getTodayString } from "../lib/utils";
 
 /**
  * syncコマンドを作成
