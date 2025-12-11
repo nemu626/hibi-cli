@@ -95,9 +95,12 @@ editor: "vi" # デフォルトはシステムのエディタ
   - Markdownのチェックボックス形式 ` - [ ] text` で記録。
 - **タスク完了 (`d`, `done`)**:
   - `hibi done <text>`: タスクを完了にする。
-  - **Zsh保管 (Completion)**:
-    - `hibi completion` コマンドでZsh用の補完スクリプトを出力。
-    - 補完スクリプト内で `hibi _internal list-tasks` などを呼び出し、動的にタスク候補を生成して補完候補に出す。
+  - `hibi done [-l|--last|--pop]`: 最後に登録したタスクを完了にする。
+  - `hibi done [-a|--all]`: すべてのタスクを完了にする。
+  - `hibi done [-f|--first]`: タスクの最上段を完了にする。
+  - done task completion
+    - `omelette`をつかい、zshにcompletionを実行させる。
+    - `.zshrc`に hibi --completion-zshのようなものを登録。
 - **メモ (`memo`, `m`)**:
   - `hibi m <text>`: 1行メモに追加。
   - `hibi m [-a|--assets] <path>`: ファイルをそのままassetsに追加する。
