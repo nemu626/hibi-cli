@@ -4,7 +4,7 @@
 
 import { existsSync } from "fs";
 import { homedir } from "os";
-import { join } from "path";
+import { join, dirname, parse } from "path";
 
 /**
  * 今日の日付をYYYYMMDD形式で取得
@@ -41,16 +41,18 @@ export function getGlobalConfigPath(): string {
 
 /**
  * プロジェクトルートを探す（hibi.yamlがあるディレクトリを上に向かって探索）
+ * Windows/Linux両対応
  */
 export function findProjectRoot(startDir: string = process.cwd()): string | null {
     let currentDir = startDir;
 
-    while (currentDir !== "/") {
+    // ルートディレクトリに到達するまで探索
+    while (parse(currentDir).root !== currentDir) {
         const configPath = join(currentDir, "hibi.yaml");
         if (existsSync(configPath)) {
             return currentDir;
         }
-        currentDir = join(currentDir, "..");
+        currentDir = dirname(currentDir);
     }
 
     return null;

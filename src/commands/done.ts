@@ -5,7 +5,7 @@
 
 import { Command } from "commander";
 import { loadConfig, requireProjectRoot } from "../lib/config";
-import { completeTask, ensureDailyFile, readDailyFile, parseTasks, writeDailyFile } from "../lib/daily";
+import { completeTask, ensureDailyFile, readDailyFile, parseTasks } from "../lib/daily";
 import { getTodayString } from "../lib/utils";
 
 /**

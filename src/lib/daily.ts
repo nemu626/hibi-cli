@@ -4,11 +4,12 @@
 
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "fs";
 import { dirname } from "path";
-import type { Task, DailyFile } from "../types";
+import type { Task } from "../types";
 import { formatDateString, getDailyFilePath, getTodayString } from "./utils";
 
 /**
  * 日報ファイルのテンプレートを生成
+ * SPEC準拠: Todo, Memo, Summary by LLM, Log By LLM セクションを含む
  */
 export function generateDailyTemplate(dateStr: string): string {
     const formattedDate = formatDateString(dateStr);
@@ -17,6 +18,10 @@ export function generateDailyTemplate(dateStr: string): string {
 ## Todo
 
 ## Memo
+
+## Summary by LLM
+
+## Log By LLM
 
 `;
 }

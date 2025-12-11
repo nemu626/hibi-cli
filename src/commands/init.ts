@@ -4,7 +4,7 @@
  */
 
 import { Command } from "commander";
-import { existsSync, mkdirSync } from "fs";
+import { existsSync, mkdirSync, writeFileSync } from "fs";
 import { join, resolve } from "path";
 import { saveProjectConfig } from "../lib/config";
 import { gitInit, gitClone, isGitRepo } from "../lib/git";
@@ -116,7 +116,6 @@ Thumbs.db
 # Local config (API keys など)
 .env.local
 `;
-        const { writeFileSync } = await import("fs");
         writeFileSync(gitignorePath, gitignoreContent, "utf-8");
         console.log("✓ .gitignore を作成しました");
     }
