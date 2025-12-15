@@ -89,4 +89,54 @@ describe("E2E: 同期機能", () => {
         expect(result.exitCode).toBe(1);
         expect(result.stderr).toContain("hibiプロジェクトが見つかりません");
     });
+
+    it("リモートが設定されていない状態で sync すると警告が出る", () => {
+        // 作業ディレクトリを作成して初期化（リモートは設定しない）
+        const workDir = join(testDir, "no-remote");
+        mkdirSync(workDir, { recursive: true });
+        initProjectWithCommand(workDir);
+
+        // タスクを追加
+        runHibi(["todo", "テストタスク"], workDir);
+
+        // sync を実行
+        const syncResult = runHibi(["sync"], workDir);
+        // リモートがなくてもエラーにはならない（コミットのみ実行）
+        expect(syncResult.exitCode).toBe(0);
+        // 警告メッセージが表示される
+        expect(syncResult.stdout).toContain("リモートリポジトリが設定されていません");
+        expect(syncResult.stdout).toContain("git remote add");
+        // 「同期完了！」は表示されない
+        expect(syncResult.stdout).not.toContain("同期完了");
+    });
+
+    it("リモートが設定されていない状態で sync --push するとエラー", () => {
+        // 作業ディレクトリを作成して初期化（リモートは設定しない）
+        const workDir = join(testDir, "no-remote-push");
+        mkdirSync(workDir, { recursive: true });
+        initProjectWithCommand(workDir);
+
+        // 初回コミット
+        spawnSync("git", ["add", "."], { cwd: workDir });
+        spawnSync("git", ["commit", "-m", "Initial"], { cwd: workDir });
+
+        // sync --push を実行
+        const syncResult = runHibi(["sync", "--push"], workDir);
+        expect(syncResult.exitCode).toBe(1);
+        expect(syncResult.stderr).toContain("リモート");
+        expect(syncResult.stderr).toContain("設定されていません");
+    });
+
+    it("リモートが設定されていない状態で sync --pull するとエラー", () => {
+        // 作業ディレクトリを作成して初期化（リモートは設定しない）
+        const workDir = join(testDir, "no-remote-pull");
+        mkdirSync(workDir, { recursive: true });
+        initProjectWithCommand(workDir);
+
+        // sync --pull を実行
+        const syncResult = runHibi(["sync", "--pull"], workDir);
+        expect(syncResult.exitCode).toBe(1);
+        expect(syncResult.stderr).toContain("リモート");
+        expect(syncResult.stderr).toContain("設定されていません");
+    });
 });
