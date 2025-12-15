@@ -137,3 +137,11 @@ export async function commitChanges(cwd: string, message: string): Promise<GitRe
 
     return gitCommit(cwd, message);
 }
+
+/**
+ * リモートが設定されているか確認
+ */
+export async function hasRemote(cwd: string, remote: string = "origin"): Promise<boolean> {
+    const result = await runGitCommand(["remote", "get-url", remote], cwd);
+    return result.success;
+}
