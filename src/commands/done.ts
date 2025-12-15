@@ -70,8 +70,10 @@ function completeDoneTask(
     }
 
     // --id: IDを指定して完了
-    if (options.id) {
-        const taskId = Number.parseInt(options.id, 10);
+    // または引数が数字のみ、または「数字:タスク名」形式の場合もIDとして扱う
+    const idMatch = text ? text.match(/^(\d+)(:|$)/) : null;
+    if (options.id || idMatch) {
+        const taskId = Number.parseInt(options.id || idMatch?.[1] || "", 10);
         if (Number.isNaN(taskId) || taskId < 1) {
             console.error("エラー: 無効なIDです");
             return;

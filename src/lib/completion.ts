@@ -10,7 +10,7 @@ import { parseTasks, readDailyFile } from "./daily";
 import { findProjectRoot, getTodayString } from "./utils";
 
 /**
- * 未完了タスクの一覧を取得
+ * 未完了タスクの一覧を取得（ID:タスク名 形式）
  */
 function getTodoTasks(): string[] {
     try {
@@ -32,51 +32,73 @@ function getTodoTasks(): string[] {
         const tasks = parseTasks(content);
         const todoTasks = tasks.filter((t) => t.status === "todo");
 
-        // IDとテキストを組み合わせて返す
-        return todoTasks.map((t) => `${t.id}:${t.text}`);
+        // ID:タスク名 形式で返す（スペースはアンダースコアに置換）
+        return todoTasks.map((t) => `${t.id}:${t.text.replace(/\s+/g, "_")}`);
     } catch {
         return [];
     }
 }
 
 /**
+ * 利用可能なコマンド一覧
+ */
+const COMMANDS = [
+    "init",
+    "todo", "t",
+    "done", "d",
+    "list", "l",
+    "memo", "m",
+    "edit", "e",
+    "sync",
+    "project", "p",
+];
+
+/**
  * Completion設定を初期化
  */
 export function setupCompletion(): void {
-    // hibi <command> <arg> の形式でcompletionを設定
-    const completion = omelette("hibi <command> <arg>");
-
-    // done, d コマンドの補完
-    completion.on("arg", ({ before, reply }: { before: string; reply: (values: string[]) => void }) => {
-        // beforeには前のワード（コマンド）が入る
-        if (before === "done" || before === "d") {
-            const tasks = getTodoTasks();
-            reply(tasks);
-        }
-    });
-
-    // completionを初期化
-    completion.init();
-
-    // --completion-fish / --completion-bash / --completion オプションの処理
+    // --completion オプションの処理
     if (process.argv.includes("--completion")) {
-        // zsh用のcompletionスクリプトを出力
-        console.log(completion.tree);
+        // Completionスクリプトを出力
+        const completion = omelette("hibi <command> <task>");
+        completion.on("command", ({ reply }: { reply: (values: string[]) => void }) => {
+            reply(COMMANDS);
+        });
+        completion.on("task", ({ before, reply }: { before: string; reply: (values: string[]) => void }) => {
+            if (before === "done" || before === "d") {
+                reply(getTodoTasks());
+            }
+        });
+        completion.init();
         process.exit(0);
     }
 
     if (process.argv.includes("--completion-install")) {
         // シェル初期化ファイルに自動インストール
+        const completion = omelette("hibi <command> <task>");
+        completion.on("command", ({ reply }: { reply: (values: string[]) => void }) => {
+            reply(COMMANDS);
+        });
+        completion.on("task", ({ before, reply }: { before: string; reply: (values: string[]) => void }) => {
+            if (before === "done" || before === "d") {
+                reply(getTodoTasks());
+            }
+        });
         completion.setupShellInitFile();
         console.log("✓ Completion設定をインストールしました。シェルを再起動してください。");
         process.exit(0);
     }
+
+    // 通常実行時はcompletionを初期化
+    const completion = omelette("hibi <command> <task>");
+    completion.on("command", ({ reply }: { reply: (values: string[]) => void }) => {
+        reply(COMMANDS);
+    });
+    completion.on("task", ({ before, reply }: { before: string; reply: (values: string[]) => void }) => {
+        if (before === "done" || before === "d") {
+            reply(getTodoTasks());
+        }
+    });
+    completion.init();
 }
 
-/**
- * Completionスクリプトを取得
- */
-export function getCompletionScript(): string {
-    const completion = omelette("hibi <command> <arg>");
-    return completion.tree?.toString() || "";
-}

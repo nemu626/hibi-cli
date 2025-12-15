@@ -236,6 +236,10 @@ hibi d [text] [options]    # エイリアス
 # テキストで指定（部分一致）
 hibi done 水やり
 
+# IDで指定（listで表示されるID）
+hibi done 1
+hibi done --id 2
+
 # 最後のタスクを完了
 hibi done --last
 hibi done --pop    # 同じ
@@ -248,6 +252,7 @@ hibi done --all
 
 # 短縮形
 hibi d 水やり
+hibi d 1
 ```
 
 #### 動作

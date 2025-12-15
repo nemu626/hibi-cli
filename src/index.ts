@@ -24,7 +24,12 @@ setupCompletion();
 // メインプログラム
 const program = new Command();
 
-program.name("hibi").description("Developer向けCLI日報管理ツール").version("0.1.0");
+program
+    .name("hibi")
+    .description("Developer向けCLI日報管理ツール")
+    .version("0.1.0")
+    .option("--completion", "Shell completion スクリプトを出力")
+    .option("--completion-install", "Shell completion を自動インストール");
 
 // コマンドを登録
 program.addCommand(createInitCommand());
