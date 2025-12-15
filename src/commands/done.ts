@@ -5,7 +5,13 @@
 
 import { Command } from "commander";
 import { loadConfig, requireProjectRoot } from "../lib/config";
-import { completeTask, ensureDailyFile, parseTasks, readDailyFile } from "../lib/daily";
+import {
+    completeTask,
+    completeTaskById,
+    ensureDailyFile,
+    parseTasks,
+    readDailyFile,
+} from "../lib/daily";
 import { getTodayString } from "../lib/utils";
 
 /**
@@ -16,6 +22,7 @@ export function createDoneCommand(): Command {
         .alias("d")
         .description("タスクを完了にする")
         .argument("[text...]", "完了するタスクの内容（部分一致）")
+        .option("-i, --id <id>", "指定したIDのタスクを完了")
         .option("-l, --last", "最後に登録したタスクを完了")
         .option("--pop", "最後に登録したタスクを完了（--lastのエイリアス）")
         .option("-f, --first", "最初のタスクを完了")
@@ -23,7 +30,7 @@ export function createDoneCommand(): Command {
         .action(
             (
                 textParts: string[],
-                options: { last?: boolean; pop?: boolean; first?: boolean; all?: boolean },
+                options: { id?: string; last?: boolean; pop?: boolean; first?: boolean; all?: boolean },
             ) => {
                 const text = textParts.join(" ");
                 // --pop は --last のエイリアス
@@ -42,7 +49,7 @@ export function createDoneCommand(): Command {
  */
 function completeDoneTask(
     text: string,
-    options: { last?: boolean; first?: boolean; all?: boolean },
+    options: { id?: string; last?: boolean; first?: boolean; all?: boolean },
 ): void {
     const projectRoot = requireProjectRoot();
     const config = loadConfig();
@@ -59,6 +66,29 @@ function completeDoneTask(
 
     if (todoTasks.length === 0) {
         console.log("未完了のタスクはありません");
+        return;
+    }
+
+    // --id: IDを指定して完了
+    if (options.id) {
+        const taskId = Number.parseInt(options.id, 10);
+        if (Number.isNaN(taskId) || taskId < 1) {
+            console.error("エラー: 無効なIDです");
+            return;
+        }
+        const result = completeTaskById(projectRoot, taskId, projectName, dateStr);
+        if (result.success) {
+            console.log(`✓ タスクを完了しました: ${result.taskText}`);
+        } else if (result.taskText) {
+            console.log(`タスクは既に完了済みです: ${result.taskText}`);
+        } else {
+            console.error(`エラー: ID ${taskId} のタスクが見つかりません`);
+            console.log("\nタスク一覧:");
+            for (const task of tasks) {
+                const checkbox = task.status === "done" ? "✓" : "○";
+                console.log(`  ${task.id}. ${checkbox} ${task.text}`);
+            }
+        }
         return;
     }
 
@@ -112,7 +142,7 @@ function completeDoneTask(
             console.error(`エラー: タスクが見つかりません: ${text}`);
             console.log("\n未完了のタスク:");
             for (const task of todoTasks) {
-                console.log(`  - ${task.text}`);
+                console.log(`  ${task.id}. ${task.text}`);
             }
         }
         return;
@@ -121,6 +151,7 @@ function completeDoneTask(
     // 引数がない場合はヘルプを表示
     console.log("使い方:");
     console.log("  hibi done <タスク>   - 指定したタスクを完了（部分一致）");
+    console.log("  hibi done --id <id>  - 指定したIDのタスクを完了");
     console.log("  hibi done --last     - 最後に登録したタスクを完了");
     console.log("  hibi done --first    - 最初のタスクを完了");
     console.log("  hibi done --all      - すべてのタスクを完了");
