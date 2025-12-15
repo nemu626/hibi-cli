@@ -50,6 +50,23 @@ sudo cp hibi /usr/local/bin/
 sudo ln -s $(pwd)/hibi /usr/local/bin/hibi
 ```
 
+### Shell Completion（オプション）
+
+zsh/bash/fishでのタブ補完を有効にするには、以下を設定してください：
+
+**zshの場合**（`.zshrc`に追加）：
+```bash
+# hibi completion
+source <(hibi --completion)
+```
+
+**または自動インストール**：
+```bash
+hibi --completion-install
+```
+
+これにより、`hibi done <Tab>`で未完了タスクの一覧が補完候補として表示されるようになります。
+
 ---
 
 ## クイックスタート
@@ -207,6 +224,7 @@ hibi d [text] [options]    # エイリアス
 
 | オプション | 説明 |
 |-----------|------|
+| `-i, --id <id>` | 指定したIDのタスクを完了 |
 | `-l, --last` | 最後に登録したタスクを完了 |
 | `--pop` | `--last` のエイリアス |
 | `-f, --first` | 最初のタスクを完了 |

@@ -16,6 +16,10 @@ import { createMemoCommand } from "./commands/memo";
 import { createProjectCommand } from "./commands/project";
 import { createSyncCommand } from "./commands/sync";
 import { createTodoCommand } from "./commands/todo";
+import { setupCompletion } from "./lib/completion";
+
+// Shell Completionのセットアップ（--completion, --completion-install の処理）
+setupCompletion();
 
 // メインプログラム
 const program = new Command();
