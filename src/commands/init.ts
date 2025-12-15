@@ -31,13 +31,31 @@ export function createInitCommand(): Command {
 }
 
 /**
+ * URLからリポジトリ名を抽出
+ */
+function getRepoNameFromUrl(url: string): string {
+    // https://github.com/user/repo.git → repo
+    // https://github.com/user/repo → repo
+    // git@github.com:user/repo.git → repo
+    const match = url.match(/\/([^/]+?)(\.git)?$/) || url.match(/:([^/]+?)(\.git)?$/);
+    return match?.[1] ?? "hibi-project";
+}
+
+/**
  * プロジェクトを初期化
  */
 async function initProject(
     directory: string,
     options: { clone?: string; git: boolean },
 ): Promise<void> {
-    const targetDir = resolve(directory);
+    // クローンの場合、directoryがデフォルト(".")ならURLからリポジトリ名を抽出
+    let targetDir: string;
+    if (options.clone && directory === ".") {
+        const repoName = getRepoNameFromUrl(options.clone);
+        targetDir = resolve(repoName);
+    } else {
+        targetDir = resolve(directory);
+    }
 
     // クローンの場合
     if (options.clone) {
