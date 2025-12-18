@@ -3,7 +3,16 @@
  * メモを追加
  */
 
-import { copyFileSync, existsSync, mkdirSync, readFileSync } from "node:fs";
+import { spawn } from "node:child_process";
+import {
+    copyFileSync,
+    existsSync,
+    mkdirSync,
+    readFileSync,
+    unlinkSync,
+    writeFileSync,
+} from "node:fs";
+import { tmpdir } from "node:os";
 import { basename, extname, join } from "node:path";
 import { Command } from "commander";
 import { loadConfig, requireProjectRoot } from "../lib/config";
@@ -61,8 +70,19 @@ export function createMemoCommand(): Command {
         .option("-a, --assets <path>", "ファイルをassetsに追加")
         .option("-f, --file <path>", "テキストファイルの内容をメモに追加")
         .option("-l, --line <range>", "行範囲を指定 (例: 1-10, 5)")
+        .option("-v, --view", "今日のメモを表示")
+        .option("--editor", "エディタを開いてメモを入力")
         .action(
-            (textParts: string[], options: { assets?: string; file?: string; line?: string }) => {
+            (
+                textParts: string[],
+                options: {
+                    assets?: string;
+                    file?: string;
+                    line?: string;
+                    view?: boolean;
+                    editor?: boolean;
+                },
+            ) => {
                 handleMemo(textParts, options);
             },
         );
@@ -75,12 +95,30 @@ export function createMemoCommand(): Command {
  */
 function handleMemo(
     textParts: string[],
-    options: { assets?: string; file?: string; line?: string },
+    options: {
+        assets?: string;
+        file?: string;
+        line?: string;
+        view?: boolean;
+        editor?: boolean;
+    },
 ): void {
     const projectRoot = requireProjectRoot();
     const config = loadConfig();
     const projectName = config.currentProject || "default";
     const dateStr = getTodayString();
+
+    // --view: メモを表示
+    if (options.view) {
+        viewMemo(projectRoot, projectName, dateStr);
+        return;
+    }
+
+    // --editor: エディタでメモを入力
+    if (options.editor) {
+        openEditorForMemo(projectRoot, projectName, dateStr);
+        return;
+    }
 
     // 日報ファイルを確保
     ensureDailyFile(projectRoot, projectName, dateStr);
@@ -102,6 +140,8 @@ function handleMemo(
     if (!text) {
         console.log("使い方:");
         console.log("  hibi memo <テキスト>           - メモを追加");
+        console.log("  hibi memo --editor             - エディタを開いてメモを入力");
+        console.log("  hibi memo --view               - 今日のメモを表示");
         console.log("  hibi memo --assets <path>      - ファイルをassetsに追加");
         console.log("  hibi memo --file <path>        - ファイル内容をメモに追加");
         console.log("  hibi memo --file <path> -l 1-10 - 特定行をメモに追加");
@@ -110,6 +150,76 @@ function handleMemo(
 
     addMemo(projectRoot, text, projectName, dateStr);
     console.log(`✓ メモを追加しました: ${text}`);
+}
+
+/**
+ * エディタを開いてメモを入力
+ */
+function openEditorForMemo(projectRoot: string, projectName: string, dateStr: string): void {
+    const tmpFilePath = join(tmpdir(), `hibi_memo_${Date.now()}.md`);
+    writeFileSync(tmpFilePath, "", "utf-8");
+
+    const editor = process.env.EDITOR || "vim";
+    const child = spawn(editor, [tmpFilePath], {
+        stdio: "inherit",
+    });
+
+    child.on("exit", (code: number) => {
+        if (code === 0) {
+            const content = readFileSync(tmpFilePath, "utf-8").trim();
+            if (content) {
+                // 日報ファイルを確保
+                ensureDailyFile(projectRoot, projectName, dateStr);
+                addMemo(projectRoot, content, projectName, dateStr);
+                console.log("✓ メモを追加しました");
+            } else {
+                console.log("メモが空のため、追加しませんでした");
+            }
+        } else {
+            console.error(`エディタが異常終了しました (code: ${code})`);
+        }
+
+        try {
+            unlinkSync(tmpFilePath);
+        } catch (e) {
+            // 無視
+        }
+    });
+}
+
+/**
+ * メモを表示
+ */
+function viewMemo(projectRoot: string, projectName: string, dateStr: string): void {
+    if (!existsSync(getDailyFilePath(projectRoot, projectName, dateStr))) {
+        console.log("今日の日報はまだありません。");
+        return;
+    }
+
+    const content = readDailyFile(projectRoot, projectName, dateStr);
+    const lines = content.split("\n");
+    let inMemoSection = false;
+    const memoLines: string[] = [];
+
+    for (const line of lines) {
+        if (line.match(/^##\s+Memo/i)) {
+            inMemoSection = true;
+            continue;
+        }
+
+        if (inMemoSection) {
+            if (line.match(/^##\s+/)) {
+                break;
+            }
+            memoLines.push(line);
+        }
+    }
+
+    if (memoLines.length === 0) {
+        console.log("今日のメモはありません。");
+    } else {
+        console.log(memoLines.join("\n").trim());
+    }
 }
 
 /**
