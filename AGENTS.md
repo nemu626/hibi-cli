@@ -9,3 +9,15 @@
 
 ## Architecture
 - Bun
+
+## Setup
+```
+# install packages
+bun install 
+
+# Test
+bun run test
+
+# Build
+bun run build
+```
