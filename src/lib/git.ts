@@ -104,6 +104,17 @@ export async function gitClone(repoUrl: string, targetDir: string): Promise<GitR
 }
 
 /**
+ * Git remote add
+ */
+export async function gitAddRemote(
+    cwd: string,
+    remoteName: string,
+    remoteUrl: string,
+): Promise<GitResult> {
+    return runGitCommand(["remote", "add", remoteName, remoteUrl], cwd);
+}
+
+/**
  * Gitのコミットログを取得
  */
 export async function getGitLog(
