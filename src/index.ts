@@ -8,6 +8,7 @@
 
 import { Command } from "commander";
 import { createDoneCommand } from "./commands/done";
+import { createAddRemoteCommand } from "./commands/add-remote";
 import { createEditCommand } from "./commands/edit";
 // コマンドのインポート
 import { createInitCommand } from "./commands/init";
@@ -40,6 +41,7 @@ program.addCommand(createMemoCommand());
 program.addCommand(createEditCommand());
 program.addCommand(createSyncCommand());
 program.addCommand(createProjectCommand());
+program.addCommand(createAddRemoteCommand());
 
 // パースして実行
 program.parse(process.argv);
