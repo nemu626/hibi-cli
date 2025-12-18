@@ -111,8 +111,8 @@ describe("daily", () => {
 `;
             const tasks = parseTasks(content);
             expect(tasks).toHaveLength(2);
-            expect(tasks[0]).toEqual({ id: 1, text: "タスク1", status: "todo", indent: 0 });
-            expect(tasks[1]).toEqual({ id: 2, text: "タスク2", status: "done", indent: 0 });
+            expect(tasks[0]).toEqual({ text: "タスク1", status: "todo", indent: 0 });
+            expect(tasks[1]).toEqual({ text: "タスク2", status: "done", indent: 0 });
         });
 
         it("正常: インデント（子タスク）を正しく認識", () => {

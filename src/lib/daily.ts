@@ -118,7 +118,7 @@ export function parseTasks(content: string): Task[] {
                 const status = taskMatch[2] === "x" ? "done" : "todo";
                 const text = taskMatch[3] || "";
 
-                tasks.push({ id: tasks.length + 1, text, status, indent });
+                tasks.push({ text, status, indent });
             }
         }
     }
@@ -193,96 +193,6 @@ export function addTask(
 }
 
 /**
- * 親タスクを指定して子タスクを追加
- */
-export function addTaskWithParent(
-    projectRoot: string,
-    parentId: number,
-    taskText: string,
-    projectName: string = "default",
-    dateStr: string = getTodayString(),
-): void {
-    ensureDailyFile(projectRoot, projectName, dateStr);
-    const content = readDailyFile(projectRoot, projectName, dateStr);
-    const lines = content.split("\n");
-
-    let inTodoSection = false;
-    let currentTaskId = 0;
-    let parentFound = false;
-    let parentIndent = 0;
-    let insertIndex = -1;
-
-    for (let i = 0; i < lines.length; i++) {
-        const line = lines[i];
-
-        // ## Todo セクションの開始を検出
-        if (line.match(/^##\s+Todo/i)) {
-            inTodoSection = true;
-            continue;
-        }
-
-        // 次のセクション（## で始まる行）で終了
-        if (inTodoSection && line.match(/^##\s+/)) {
-            // 親タスクが最後だった場合、ここに挿入
-            if (parentFound) {
-                insertIndex = i;
-            }
-            break;
-        }
-
-        // タスク行をカウント
-        if (inTodoSection) {
-            const taskMatch = line.match(/^(\s*)- \[([ x])\]\s*(.+)$/);
-            if (taskMatch) {
-                currentTaskId++;
-
-                // 親タスクを見つけた
-                if (currentTaskId === parentId) {
-                    parentFound = true;
-                    parentIndent = Math.floor((taskMatch[1]?.length || 0) / 2);
-                    insertIndex = i + 1; // とりあえず直後に挿入
-                    continue;
-                }
-
-                // 親タスク発見後、子タスクが続く場合はその後ろに追加したい
-                if (parentFound) {
-                    const currentIndent = Math.floor((taskMatch[1]?.length || 0) / 2);
-                    if (currentIndent > parentIndent) {
-                        insertIndex = i + 1;
-                    } else {
-                        // 次のタスクが親と同じか浅いインデントなら、その前が挿入位置
-                        insertIndex = i;
-                        // 親タスクより後のタスクを見つけたのでbreak
-                        break;
-                    }
-                }
-            } else if (parentFound) {
-                // タスク行でない場合（空行など）もスキップして次に挿入
-                // ただしセクションヘッダーなどは上のループ条件でbreakされる
-                insertIndex = i + 1;
-            }
-        }
-    }
-
-    // ファイルの最後までTodoセクションが続いている場合
-    if (parentFound && insertIndex === -1) {
-        insertIndex = lines.length;
-    }
-
-    if (!parentFound) {
-        console.error(`エラー: ID ${parentId} のタスクが見つかりません`);
-        return;
-    }
-
-    // 新しいタスクを追加（親タスクのインデント + 1）
-    const newIndent = parentIndent + 1;
-    const newTask: Task = { text: taskText, status: "todo", indent: newIndent };
-    lines.splice(insertIndex, 0, formatTask(newTask));
-
-    writeDailyFile(projectRoot, lines.join("\n"), projectName, dateStr);
-}
-
-/**
  * タスクを完了にする
  */
 export function completeTask(
@@ -314,66 +224,6 @@ export function completeTask(
     }
 
     return found;
-}
-
-/**
- * IDを指定してタスクを完了にする
- */
-export function completeTaskById(
-    projectRoot: string,
-    taskId: number,
-    projectName: string = "default",
-    dateStr: string = getTodayString(),
-): { success: boolean; taskText?: string } {
-    const content = readDailyFile(projectRoot, projectName, dateStr);
-    const lines = content.split("\n");
-    let inTodoSection = false;
-    let currentTaskId = 0;
-    let found = false;
-    let taskText: string | undefined;
-
-    for (let i = 0; i < lines.length; i++) {
-        const line = lines[i];
-        if (!line) continue;
-
-        // ## Todo セクションの開始を検出
-        if (line.match(/^##\s+Todo/i)) {
-            inTodoSection = true;
-            continue;
-        }
-
-        // 次のセクション（## で始まる行）で終了
-        if (inTodoSection && line.match(/^##\s+/)) {
-            break;
-        }
-
-        // タスク行をカウント
-        if (inTodoSection) {
-            const taskMatch = line.match(/^(\s*)- \[([ x])\]\s*(.+)$/);
-            if (taskMatch) {
-                currentTaskId++;
-                if (currentTaskId === taskId) {
-                    // 未完了タスクの場合のみ完了にする
-                    if (taskMatch[2] === " ") {
-                        const indent = taskMatch[1] || "";
-                        taskText = taskMatch[3] || "";
-                        lines[i] = `${indent}- [x] ${taskText}`;
-                        found = true;
-                    } else {
-                        // 既に完了済み
-                        taskText = taskMatch[3] || "";
-                    }
-                    break;
-                }
-            }
-        }
-    }
-
-    if (found) {
-        writeDailyFile(projectRoot, lines.join("\n"), projectName, dateStr);
-    }
-
-    return { success: found, taskText };
 }
 
 /**

@@ -29,9 +29,6 @@ export function formatDateString(dateStr: string): string {
  * グローバル設定ディレクトリのパスを取得
  */
 export function getGlobalConfigDir(): string {
-    if (process.env.HIBI_CONFIG_DIR) {
-        return process.env.HIBI_CONFIG_DIR;
-    }
     return join(homedir(), ".config", "hibi");
 }
 

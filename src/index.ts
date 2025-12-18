@@ -17,20 +17,11 @@ import { createProjectCommand } from "./commands/project";
 import { createRemoteCommand } from "./commands/remote";
 import { createSyncCommand } from "./commands/sync";
 import { createTodoCommand } from "./commands/todo";
-import { setupCompletion } from "./lib/completion";
-
-// Shell Completionのセットアップ（--completion, --completion-install の処理）
-setupCompletion();
 
 // メインプログラム
 const program = new Command();
 
-program
-    .name("hibi")
-    .description("Developer向けCLI日報管理ツール")
-    .version("0.1.0")
-    .option("--completion", "Shell completion スクリプトを出力")
-    .option("--completion-install", "Shell completion を自動インストール");
+program.name("hibi").description("Developer向けCLI日報管理ツール").version("0.1.0");
 
 // コマンドを登録
 program.addCommand(createInitCommand());

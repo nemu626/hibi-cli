@@ -3,18 +3,44 @@
  */
 
 import { afterEach, beforeEach, describe, expect, it } from "bun:test";
-import { initProjectManually, runHibi, setupTestEnv, teardownTestEnv } from "../helpers/test-utils";
+import { spawnSync } from "node:child_process";
+import { mkdirSync, rmSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
+
+const CLI_PATH = join(import.meta.dir, "../../../src/index.ts");
+
+function runHibi(
+    args: string[],
+    cwd: string,
+): { stdout: string; stderr: string; exitCode: number } {
+    const result = spawnSync("bun", ["run", CLI_PATH, ...args], {
+        cwd,
+        encoding: "utf-8",
+    });
+    return {
+        stdout: result.stdout || "",
+        stderr: result.stderr || "",
+        exitCode: result.status ?? 1,
+    };
+}
+
+function initProject(dir: string): void {
+    mkdirSync(join(dir, "projects", "default", "daily"), { recursive: true });
+    writeFileSync(join(dir, "hibi.yaml"), "remote: origin\n");
+}
 
 describe("todo command", () => {
     let testDir: string;
 
     beforeEach(() => {
-        testDir = setupTestEnv("hibi-todo-test");
-        initProjectManually(testDir);
+        testDir = join(tmpdir(), `hibi-todo-test-${Date.now()}`);
+        mkdirSync(testDir, { recursive: true });
+        initProject(testDir);
     });
 
     afterEach(() => {
-        teardownTestEnv(testDir);
+        rmSync(testDir, { recursive: true, force: true });
     });
 
     it("正常: タスク追加", () => {
@@ -32,14 +58,15 @@ describe("todo command", () => {
     });
 
     it("エッジ: プロジェクト未初期化でエラー", () => {
-        const emptyDir = setupTestEnv("hibi-empty");
+        const emptyDir = join(tmpdir(), `hibi-empty-${Date.now()}`);
+        mkdirSync(emptyDir, { recursive: true });
 
         const result = runHibi(["todo", "タスク"], emptyDir);
 
         expect(result.exitCode).toBe(1);
         expect(result.stderr).toContain("hibiプロジェクトが見つかりません");
 
-        teardownTestEnv(emptyDir);
+        rmSync(emptyDir, { recursive: true, force: true });
     });
 });
 
@@ -47,12 +74,13 @@ describe("list command", () => {
     let testDir: string;
 
     beforeEach(() => {
-        testDir = setupTestEnv("hibi-list-test");
-        initProjectManually(testDir);
+        testDir = join(tmpdir(), `hibi-list-test-${Date.now()}`);
+        mkdirSync(testDir, { recursive: true });
+        initProject(testDir);
     });
 
     afterEach(() => {
-        teardownTestEnv(testDir);
+        rmSync(testDir, { recursive: true, force: true });
     });
 
     it("正常: タスク一覧表示", () => {
@@ -87,15 +115,16 @@ describe("done command", () => {
     let testDir: string;
 
     beforeEach(() => {
-        testDir = setupTestEnv("hibi-done-test");
-        initProjectManually(testDir);
+        testDir = join(tmpdir(), `hibi-done-test-${Date.now()}`);
+        mkdirSync(testDir, { recursive: true });
+        initProject(testDir);
         runHibi(["todo", "タスクA"], testDir);
         runHibi(["todo", "タスクB"], testDir);
         runHibi(["todo", "タスクC"], testDir);
     });
 
     afterEach(() => {
-        teardownTestEnv(testDir);
+        rmSync(testDir, { recursive: true, force: true });
     });
 
     it("正常: 部分一致で完了", () => {

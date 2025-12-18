@@ -87,8 +87,6 @@ function printTasks(tasks: Task[]): void {
         const checkbox = task.status === "done" ? "✓" : "○";
         const style = task.status === "done" ? "\x1b[90m" : ""; // 完了は灰色
         const reset = task.status === "done" ? "\x1b[0m" : "";
-        // IDをシアン色で表示
-        const idStr = task.id ? `\x1b[36m${task.id}.\x1b[0m ` : "";
-        console.log(`${indent}${idStr}${style}${checkbox} ${task.text}${reset}`);
+        console.log(`${indent}${style}${checkbox} ${task.text}${reset}`);
     }
 }

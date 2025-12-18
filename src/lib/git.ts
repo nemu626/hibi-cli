@@ -69,6 +69,17 @@ export async function isGitRepo(cwd: string): Promise<boolean> {
 }
 
 /**
+ * git remote add
+ */
+export async function gitRemoteAdd(
+    cwd: string,
+    url: string,
+    remote: string = "origin",
+): Promise<GitResult> {
+    return runGitCommand(["remote", "add", remote, url], cwd);
+}
+
+/**
  * Git pull
  */
 export async function gitPull(cwd: string, remote: string = "origin"): Promise<GitResult> {
@@ -144,15 +155,4 @@ export async function commitChanges(cwd: string, message: string): Promise<GitRe
 export async function hasRemote(cwd: string, remote: string = "origin"): Promise<boolean> {
     const result = await runGitCommand(["remote", "get-url", remote], cwd);
     return result.success;
-}
-
-/**
- * git remote add
- */
-export async function gitRemoteAdd(
-    cwd: string,
-    url: string,
-    remote: string = "origin",
-): Promise<GitResult> {
-    return runGitCommand(["remote", "add", remote, url], cwd);
 }
