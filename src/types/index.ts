@@ -43,7 +43,6 @@ export type TaskStatus = "todo" | "done";
 
 // タスク
 export interface Task {
-    id?: number; // 実行時に動的に割り当てられる連番ID（1始まり）
     text: string;
     status: TaskStatus;
     indent: number;

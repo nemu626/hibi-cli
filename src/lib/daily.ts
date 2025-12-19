@@ -118,7 +118,7 @@ export function parseTasks(content: string): Task[] {
                 const status = taskMatch[2] === "x" ? "done" : "todo";
                 const text = taskMatch[3] || "";
 
-                tasks.push({ id: tasks.length + 1, text, status, indent });
+                tasks.push({ text, status, indent });
             }
         }
     }
@@ -224,66 +224,6 @@ export function completeTask(
     }
 
     return found;
-}
-
-/**
- * IDを指定してタスクを完了にする
- */
-export function completeTaskById(
-    projectRoot: string,
-    taskId: number,
-    projectName: string = "default",
-    dateStr: string = getTodayString(),
-): { success: boolean; taskText?: string } {
-    const content = readDailyFile(projectRoot, projectName, dateStr);
-    const lines = content.split("\n");
-    let inTodoSection = false;
-    let currentTaskId = 0;
-    let found = false;
-    let taskText: string | undefined;
-
-    for (let i = 0; i < lines.length; i++) {
-        const line = lines[i];
-        if (!line) continue;
-
-        // ## Todo セクションの開始を検出
-        if (line.match(/^##\s+Todo/i)) {
-            inTodoSection = true;
-            continue;
-        }
-
-        // 次のセクション（## で始まる行）で終了
-        if (inTodoSection && line.match(/^##\s+/)) {
-            break;
-        }
-
-        // タスク行をカウント
-        if (inTodoSection) {
-            const taskMatch = line.match(/^(\s*)- \[([ x])\]\s*(.+)$/);
-            if (taskMatch) {
-                currentTaskId++;
-                if (currentTaskId === taskId) {
-                    // 未完了タスクの場合のみ完了にする
-                    if (taskMatch[2] === " ") {
-                        const indent = taskMatch[1] || "";
-                        taskText = taskMatch[3] || "";
-                        lines[i] = `${indent}- [x] ${taskText}`;
-                        found = true;
-                    } else {
-                        // 既に完了済み
-                        taskText = taskMatch[3] || "";
-                    }
-                    break;
-                }
-            }
-        }
-    }
-
-    if (found) {
-        writeDailyFile(projectRoot, lines.join("\n"), projectName, dateStr);
-    }
-
-    return { success: found, taskText };
 }
 
 /**

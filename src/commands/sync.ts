@@ -5,7 +5,7 @@
 
 import { Command } from "commander";
 import { loadConfig, requireProjectRoot } from "../lib/config";
-import { commitChanges, gitPull, gitPush, hasChanges, hasRemote, isGitRepo } from "../lib/git";
+import { commitChanges, gitPull, gitPush, hasChanges, isGitRepo } from "../lib/git";
 import { formatDateString, getTodayString } from "../lib/utils";
 
 /**
@@ -38,17 +38,8 @@ async function syncRepo(options: { push?: boolean; pull?: boolean }): Promise<vo
         process.exit(1);
     }
 
-    // リモートが設定されているか確認
-    const remoteExists = await hasRemote(projectRoot, remote);
-
     // --pull のみ
     if (options.pull && !options.push) {
-        if (!remoteExists) {
-            console.error(`エラー: リモート '${remote}' が設定されていません`);
-            console.log("ヒント: リモートリポジトリを設定してください:");
-            console.log(`   git remote add ${remote} <url>`);
-            process.exit(1);
-        }
         console.log("リモートから変更を取得中...");
         const result = await gitPull(projectRoot, remote);
         if (result.success) {
@@ -65,41 +56,12 @@ async function syncRepo(options: { push?: boolean; pull?: boolean }): Promise<vo
 
     // --push のみ
     if (options.push && !options.pull) {
-        if (!remoteExists) {
-            console.error(`エラー: リモート '${remote}' が設定されていません`);
-            console.log("ヒント: リモートリポジトリを設定してください:");
-            console.log(`   git remote add ${remote} <url>`);
-            process.exit(1);
-        }
         await pushChanges(projectRoot, remote);
         return;
     }
 
     // 両方（デフォルト動作）
     console.log("同期を開始します...\n");
-
-    // リモートが設定されていない場合
-    if (!remoteExists) {
-        console.log("⚠ リモートリポジトリが設定されていません");
-        console.log("ヒント: リモートリポジトリを設定してください:");
-        console.log(`   git remote add ${remote} <url>`);
-        console.log("\nローカルの変更のみコミットします...\n");
-
-        // 変更があればコミットのみ
-        const changes = await hasChanges(projectRoot);
-        if (changes) {
-            const dateStr = formatDateString(getTodayString());
-            const commitResult = await commitChanges(projectRoot, `hibi: ${dateStr} 更新`);
-            if (commitResult.success) {
-                console.log("✓ コミット完了");
-            } else if (!commitResult.error?.includes("nothing to commit")) {
-                console.error(`エラー: コミット失敗 (${commitResult.error})`);
-            }
-        } else {
-            console.log("変更なし");
-        }
-        return;
-    }
 
     // まずpull
     console.log("1. リモートから変更を取得中...");
