@@ -151,8 +151,10 @@ export function addTask(
     projectName: string = "default",
     dateStr: string = getTodayString(),
 ): void {
-    ensureDailyFile(projectRoot, projectName, dateStr);
-    const content = readDailyFile(projectRoot, projectName, dateStr);
+    const filePath = ensureDailyFile(projectRoot, projectName, dateStr);
+    // ensureDailyFile guarantees file exists, so we can use readFileSync directly
+    // This avoids redundant getDailyFilePath and existsSync calls
+    const content = readFileSync(filePath, "utf-8");
     const lines = content.split("\n");
 
     // ## Todo セクションを探して、その直後にタスクを追加
@@ -189,7 +191,8 @@ export function addTask(
     const newTask: Task = { text: taskText, status: "todo", indent: 0 };
     lines.splice(insertIndex, 0, formatTask(newTask));
 
-    writeDailyFile(projectRoot, lines.join("\n"), projectName, dateStr);
+    // File path is known and file exists, write directly
+    writeFileSync(filePath, lines.join("\n"), "utf-8");
 }
 
 /**
@@ -201,7 +204,13 @@ export function completeTask(
     projectName: string = "default",
     dateStr: string = getTodayString(),
 ): boolean {
-    const content = readDailyFile(projectRoot, projectName, dateStr);
+    const filePath = getDailyFilePath(projectRoot, projectName, dateStr);
+
+    if (!existsSync(filePath)) {
+        return false;
+    }
+
+    const content = readFileSync(filePath, "utf-8");
     const lines = content.split("\n");
     let found = false;
 
@@ -220,7 +229,7 @@ export function completeTask(
     }
 
     if (found) {
-        writeDailyFile(projectRoot, lines.join("\n"), projectName, dateStr);
+        writeFileSync(filePath, lines.join("\n"), "utf-8");
     }
 
     return found;
@@ -235,7 +244,13 @@ export function completeTaskById(
     projectName: string = "default",
     dateStr: string = getTodayString(),
 ): { success: boolean; taskText?: string } {
-    const content = readDailyFile(projectRoot, projectName, dateStr);
+    const filePath = getDailyFilePath(projectRoot, projectName, dateStr);
+
+    if (!existsSync(filePath)) {
+        return { success: false };
+    }
+
+    const content = readFileSync(filePath, "utf-8");
     const lines = content.split("\n");
     let inTodoSection = false;
     let currentTaskId = 0;
@@ -280,7 +295,7 @@ export function completeTaskById(
     }
 
     if (found) {
-        writeDailyFile(projectRoot, lines.join("\n"), projectName, dateStr);
+        writeFileSync(filePath, lines.join("\n"), "utf-8");
     }
 
     return { success: found, taskText };
@@ -295,8 +310,8 @@ export function addMemo(
     projectName: string = "default",
     dateStr: string = getTodayString(),
 ): void {
-    ensureDailyFile(projectRoot, projectName, dateStr);
-    const content = readDailyFile(projectRoot, projectName, dateStr);
+    const filePath = ensureDailyFile(projectRoot, projectName, dateStr);
+    const content = readFileSync(filePath, "utf-8");
     const lines = content.split("\n");
 
     // ## Memo セクションを探して、その直後にメモを追加
@@ -330,5 +345,5 @@ export function addMemo(
     // メモを追加（リスト形式）
     lines.splice(insertIndex, 0, `- ${memoText}`);
 
-    writeDailyFile(projectRoot, lines.join("\n"), projectName, dateStr);
+    writeFileSync(filePath, lines.join("\n"), "utf-8");
 }
