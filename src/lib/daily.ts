@@ -150,6 +150,7 @@ export function addTask(
     taskText: string,
     projectName: string = "default",
     dateStr: string = getTodayString(),
+    parentId?: number,
 ): void {
     ensureDailyFile(projectRoot, projectName, dateStr);
     const content = readDailyFile(projectRoot, projectName, dateStr);
@@ -158,26 +159,56 @@ export function addTask(
     // ## Todo セクションを探して、その直後にタスクを追加
     let todoSectionIndex = -1;
     let insertIndex = -1;
+    let currentTaskId = 0;
+    let parentIndent = 0;
+    let parentFound = false;
 
     for (let i = 0; i < lines.length; i++) {
-        if (lines[i]?.match(/^##\s+Todo/i)) {
+        const line = lines[i];
+
+        if (line?.match(/^##\s+Todo/i)) {
             todoSectionIndex = i;
             insertIndex = i + 1;
+            continue;
+        }
 
-            // 既存のタスクの最後を探す
-            for (let j = i + 1; j < lines.length; j++) {
-                const line = lines[j];
-                if (line?.match(/^##\s+/)) {
-                    // 次のセクションに到達
-                    insertIndex = j;
-                    break;
-                }
-                if (line?.match(/^\s*- \[[ x]\]/)) {
-                    // タスク行の後に挿入
-                    insertIndex = j + 1;
-                }
+        // セクション外ならスキップ (ただしTodoセクション内は処理)
+        if (todoSectionIndex === -1) continue;
+
+        // 次のセクションに到達したら終了
+        if (line?.match(/^##\s+/)) {
+            if (!parentId) {
+                insertIndex = i;
             }
             break;
+        }
+
+        // タスク行をカウント
+        const taskMatch = line?.match(/^(\s*)- \[([ x])\]\s*(.+)$/);
+        if (taskMatch) {
+            currentTaskId++;
+
+            // 親タスクIDが指定されている場合、親タスクを探す
+            if (parentId && currentTaskId === parentId) {
+                parentFound = true;
+                parentIndent = Math.floor((taskMatch[1]?.length || 0) / 2);
+                insertIndex = i + 1;
+            } else if (parentFound && parentId) {
+                // 親タスクが見つかった後、子タスク（インデントが深い）をスキップして、
+                // 次の同レベルか浅いレベルのタスクの前、またはセクション終了前に挿入位置を設定する
+                const currentIndent = Math.floor((taskMatch[1]?.length || 0) / 2);
+                if (currentIndent > parentIndent) {
+                    insertIndex = i + 1;
+                } else {
+                    // 子タスクが終わった
+                    insertIndex = i;
+                    // ループを抜ける必要はないが、insertIndexはここで確定
+                    break;
+                }
+            } else if (!parentId) {
+                // 親ID指定なしなら、末尾に追加するためにループを続ける
+                insertIndex = i + 1;
+            }
         }
     }
 
@@ -186,7 +217,13 @@ export function addTask(
         return;
     }
 
-    const newTask: Task = { text: taskText, status: "todo", indent: 0 };
+    if (parentId && !parentFound) {
+        console.error(`エラー: 指定された親タスクID(${parentId})が見つかりません`);
+        return;
+    }
+
+    const newIndent = parentId ? parentIndent + 1 : 0;
+    const newTask: Task = { text: taskText, status: "todo", indent: newIndent };
     lines.splice(insertIndex, 0, formatTask(newTask));
 
     writeDailyFile(projectRoot, lines.join("\n"), projectName, dateStr);

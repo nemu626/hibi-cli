@@ -3,7 +3,8 @@
  * メモを追加
  */
 
-import { copyFileSync, existsSync, mkdirSync, readFileSync } from "node:fs";
+import { spawn } from "node:child_process";
+import { copyFileSync, existsSync, mkdirSync, readFileSync, unlinkSync } from "node:fs";
 import { basename, extname, join } from "node:path";
 import { Command } from "commander";
 import { loadConfig, requireProjectRoot } from "../lib/config";
@@ -61,8 +62,19 @@ export function createMemoCommand(): Command {
         .option("-a, --assets <path>", "ファイルをassetsに追加")
         .option("-f, --file <path>", "テキストファイルの内容をメモに追加")
         .option("-l, --line <range>", "行範囲を指定 (例: 1-10, 5)")
+        .option("-v, --view", "メモを表示")
+        .option("-e, --editor", "エディタでメモを追加")
         .action(
-            (textParts: string[], options: { assets?: string; file?: string; line?: string }) => {
+            (
+                textParts: string[],
+                options: {
+                    assets?: string;
+                    file?: string;
+                    line?: string;
+                    view?: boolean;
+                    editor?: boolean;
+                },
+            ) => {
                 handleMemo(textParts, options);
             },
         );
@@ -75,7 +87,13 @@ export function createMemoCommand(): Command {
  */
 function handleMemo(
     textParts: string[],
-    options: { assets?: string; file?: string; line?: string },
+    options: {
+        assets?: string;
+        file?: string;
+        line?: string;
+        view?: boolean;
+        editor?: boolean;
+    },
 ): void {
     const projectRoot = requireProjectRoot();
     const config = loadConfig();
@@ -84,6 +102,12 @@ function handleMemo(
 
     // 日報ファイルを確保
     ensureDailyFile(projectRoot, projectName, dateStr);
+
+    // --view: メモを表示
+    if (options.view) {
+        showMemo(projectRoot, projectName, dateStr);
+        return;
+    }
 
     // --assets: ファイルをassetsにコピー
     if (options.assets) {
@@ -97,6 +121,12 @@ function handleMemo(
         return;
     }
 
+    // --editor: エディタでメモを追加
+    if (options.editor) {
+        addMemoWithEditor(projectRoot, projectName, dateStr);
+        return;
+    }
+
     // 通常のメモ
     const text = textParts.join(" ");
     if (!text) {
@@ -105,11 +135,48 @@ function handleMemo(
         console.log("  hibi memo --assets <path>      - ファイルをassetsに追加");
         console.log("  hibi memo --file <path>        - ファイル内容をメモに追加");
         console.log("  hibi memo --file <path> -l 1-10 - 特定行をメモに追加");
+        console.log("  hibi memo --view               - 今日のメモを表示");
+        console.log("  hibi memo --editor             - エディタでメモを追加");
         return;
     }
 
     addMemo(projectRoot, text, projectName, dateStr);
     console.log(`✓ メモを追加しました: ${text}`);
+}
+
+/**
+ * メモを表示
+ */
+function showMemo(projectRoot: string, projectName: string, dateStr: string): void {
+    const content = readDailyFile(projectRoot, projectName, dateStr);
+    const lines = content.split("\n");
+    let inMemoSection = false;
+    let memoLines: string[] = [];
+
+    for (const line of lines) {
+        // ## Memo セクションの開始を検出
+        if (line.match(/^##\s+Memo/i)) {
+            inMemoSection = true;
+            continue;
+        }
+
+        // 次のセクション（## で始まる行）で終了
+        if (inMemoSection && line.match(/^##\s+/)) {
+            break;
+        }
+
+        // メモ行を収集
+        if (inMemoSection) {
+            memoLines.push(line);
+        }
+    }
+
+    const memoText = memoLines.join("\n").trim();
+    if (memoText) {
+        console.log(memoText);
+    } else {
+        console.log("メモはありません");
+    }
 }
 
 /**
@@ -220,4 +287,35 @@ function addFileContent(
     writeDailyFile(projectRoot, memoLines.join("\n"), projectName, dateStr);
 
     console.log(`✓ ファイル内容をメモに追加しました: ${filePath}:${startLine}-${endLine}`);
+}
+
+/**
+ * エディタでメモを追加
+ */
+function addMemoWithEditor(projectRoot: string, projectName: string, dateStr: string): void {
+    const tempFile = join(projectRoot, `.hibi_memo_${Date.now()}.md`);
+    const editor = process.env.EDITOR || "vi";
+
+    const child = spawn(editor, [tempFile], {
+        stdio: "inherit",
+    });
+
+    child.on("exit", (code) => {
+        if (code === 0) {
+            if (existsSync(tempFile)) {
+                const content = readFileSync(tempFile, "utf-8").trim();
+                if (content) {
+                    addMemo(projectRoot, content, projectName, dateStr);
+                    console.log("✓ メモを追加しました");
+                } else {
+                    console.log("メモが空のため追加しませんでした");
+                }
+                unlinkSync(tempFile);
+            } else {
+                console.log("メモが保存されなかったため追加しませんでした");
+            }
+        } else {
+            console.error(`エディタが異常終了しました (code: ${code})`);
+        }
+    });
 }

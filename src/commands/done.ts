@@ -30,7 +30,13 @@ export function createDoneCommand(): Command {
         .action(
             (
                 textParts: string[],
-                options: { id?: string; last?: boolean; pop?: boolean; first?: boolean; all?: boolean },
+                options: {
+                    id?: string;
+                    last?: boolean;
+                    pop?: boolean;
+                    first?: boolean;
+                    all?: boolean;
+                },
             ) => {
                 const text = textParts.join(" ");
                 // --pop は --last のエイリアス
