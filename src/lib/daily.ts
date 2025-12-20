@@ -150,10 +150,79 @@ export function addTask(
     taskText: string,
     projectName: string = "default",
     dateStr: string = getTodayString(),
+    parentId?: number,
 ): void {
     ensureDailyFile(projectRoot, projectName, dateStr);
     const content = readDailyFile(projectRoot, projectName, dateStr);
     const lines = content.split("\n");
+
+    if (parentId) {
+        // 親タスクの下に追加
+        let inTodoSection = false;
+        let currentTaskId = 0;
+        let parentTaskIndex = -1;
+        let parentIndent = 0;
+
+        for (let i = 0; i < lines.length; i++) {
+            const line = lines[i];
+
+            if (line.match(/^##\s+Todo/i)) {
+                inTodoSection = true;
+                continue;
+            }
+
+            if (inTodoSection) {
+                if (line.match(/^##\s+/)) {
+                    break;
+                }
+
+                const taskMatch = line.match(/^(\s*)- \[([ x])\]\s*(.+)$/);
+                if (taskMatch) {
+                    currentTaskId++;
+                    if (currentTaskId === parentId) {
+                        parentTaskIndex = i;
+                        parentIndent = Math.floor((taskMatch[1]?.length || 0) / 2);
+                        break;
+                    }
+                }
+            }
+        }
+
+        if (parentTaskIndex !== -1) {
+            // 親タスクが見つかった場合
+            // 親タスクの下、かつ同じかより深いインデントのタスクの最後を探す
+            let insertIndex = parentTaskIndex + 1;
+            for (let j = parentTaskIndex + 1; j < lines.length; j++) {
+                const line = lines[j];
+                const taskMatch = line.match(/^(\s*)- \[([ x])\]/);
+                if (taskMatch) {
+                    const indent = Math.floor((taskMatch[1]?.length || 0) / 2);
+                    if (indent <= parentIndent) {
+                        // 親タスクと同じか浅いインデントが見つかったら、その前
+                        insertIndex = j;
+                        break;
+                    }
+                    // 子タスクなら次へ
+                    insertIndex = j + 1;
+                } else {
+                    // タスク行以外ならそこで止める（ただし空行はスキップしたいかも？）
+                    // とりあえずセクション開始なら止める
+                    if (line.match(/^##\s+/)) {
+                        insertIndex = j;
+                        break;
+                    }
+                }
+            }
+
+            const newTask: Task = { text: taskText, status: "todo", indent: parentIndent + 1 };
+            lines.splice(insertIndex, 0, formatTask(newTask));
+            writeDailyFile(projectRoot, lines.join("\n"), projectName, dateStr);
+            return;
+        } else {
+            console.error(`エラー: 親タスク(ID: ${parentId})が見つかりません`);
+            return;
+        }
+    }
 
     // ## Todo セクションを探して、その直後にタスクを追加
     let todoSectionIndex = -1;

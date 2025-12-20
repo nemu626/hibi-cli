@@ -3,7 +3,8 @@
  * メモを追加
  */
 
-import { copyFileSync, existsSync, mkdirSync, readFileSync } from "node:fs";
+import { spawn } from "node:child_process";
+import { copyFileSync, existsSync, mkdirSync, readFileSync, unlinkSync, writeFileSync } from "node:fs";
 import { basename, extname, join } from "node:path";
 import { Command } from "commander";
 import { loadConfig, requireProjectRoot } from "../lib/config";
@@ -61,8 +62,19 @@ export function createMemoCommand(): Command {
         .option("-a, --assets <path>", "ファイルをassetsに追加")
         .option("-f, --file <path>", "テキストファイルの内容をメモに追加")
         .option("-l, --line <range>", "行範囲を指定 (例: 1-10, 5)")
+        .option("-v, --view", "今日のメモを表示")
+        .option("-e, --editor", "エディタでメモを作成")
         .action(
-            (textParts: string[], options: { assets?: string; file?: string; line?: string }) => {
+            (
+                textParts: string[],
+                options: {
+                    assets?: string;
+                    file?: string;
+                    line?: string;
+                    view?: boolean;
+                    editor?: boolean;
+                },
+            ) => {
                 handleMemo(textParts, options);
             },
         );
@@ -73,10 +85,16 @@ export function createMemoCommand(): Command {
 /**
  * メモを処理
  */
-function handleMemo(
+async function handleMemo(
     textParts: string[],
-    options: { assets?: string; file?: string; line?: string },
-): void {
+    options: {
+        assets?: string;
+        file?: string;
+        line?: string;
+        view?: boolean;
+        editor?: boolean;
+    },
+): Promise<void> {
     const projectRoot = requireProjectRoot();
     const config = loadConfig();
     const projectName = config.currentProject || "default";
@@ -84,6 +102,12 @@ function handleMemo(
 
     // 日報ファイルを確保
     ensureDailyFile(projectRoot, projectName, dateStr);
+
+    // --view: メモを表示
+    if (options.view) {
+        viewMemo(projectRoot, projectName, dateStr);
+        return;
+    }
 
     // --assets: ファイルをassetsにコピー
     if (options.assets) {
@@ -97,11 +121,19 @@ function handleMemo(
         return;
     }
 
+    // --editor: エディタでメモを作成
+    if (options.editor) {
+        await addMemoWithEditor(projectRoot, projectName, dateStr);
+        return;
+    }
+
     // 通常のメモ
     const text = textParts.join(" ");
     if (!text) {
         console.log("使い方:");
         console.log("  hibi memo <テキスト>           - メモを追加");
+        console.log("  hibi memo --view               - 今日のメモを表示");
+        console.log("  hibi memo --editor             - エディタでメモを作成");
         console.log("  hibi memo --assets <path>      - ファイルをassetsに追加");
         console.log("  hibi memo --file <path>        - ファイル内容をメモに追加");
         console.log("  hibi memo --file <path> -l 1-10 - 特定行をメモに追加");
@@ -110,6 +142,80 @@ function handleMemo(
 
     addMemo(projectRoot, text, projectName, dateStr);
     console.log(`✓ メモを追加しました: ${text}`);
+}
+
+/**
+ * メモを表示
+ */
+function viewMemo(projectRoot: string, projectName: string, dateStr: string): void {
+    const content = readDailyFile(projectRoot, projectName, dateStr);
+    const lines = content.split("\n");
+    let inMemoSection = false;
+    const memoLines: string[] = [];
+
+    for (const line of lines) {
+        if (line.match(/^##\s+Memo/i)) {
+            inMemoSection = true;
+            continue;
+        }
+
+        if (inMemoSection) {
+            if (line.match(/^##\s+/)) {
+                break;
+            }
+            if (line.trim() !== "") {
+                memoLines.push(line);
+            }
+        }
+    }
+
+    if (memoLines.length === 0) {
+        console.log("メモはありません。");
+    } else {
+        console.log(memoLines.join("\n"));
+    }
+}
+
+/**
+ * エディタでメモを作成
+ */
+async function addMemoWithEditor(
+    projectRoot: string,
+    projectName: string,
+    dateStr: string,
+): Promise<void> {
+    const editor = process.env.EDITOR || "vi";
+    const tempFile = join(process.cwd(), `.hibi_memo_temp_${Date.now()}.md`);
+
+    writeFileSync(tempFile, "", "utf-8");
+
+    try {
+        const child = spawn(editor, [tempFile], {
+            stdio: "inherit",
+        });
+
+        await new Promise<void>((resolve, reject) => {
+            child.on("exit", (code) => {
+                if (code === 0) resolve();
+                else reject(new Error(`Editor exited with code ${code}`));
+            });
+            child.on("error", reject);
+        });
+
+        const content = readFileSync(tempFile, "utf-8").trim();
+        if (content) {
+            addMemo(projectRoot, content, projectName, dateStr);
+            console.log("✓ メモを追加しました");
+        } else {
+            console.log("メモが空のため、追加しませんでした");
+        }
+    } catch (error) {
+        console.error("エディタの起動に失敗しました:", error);
+    } finally {
+        if (existsSync(tempFile)) {
+            unlinkSync(tempFile);
+        }
+    }
 }
 
 /**
