@@ -3,11 +3,11 @@
  * メモを追加
  */
 
-import { copyFileSync, existsSync, mkdirSync, readFileSync } from "node:fs";
+import { copyFileSync, existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { basename, extname, join } from "node:path";
 import { Command } from "commander";
 import { loadConfig, requireProjectRoot } from "../lib/config";
-import { addMemo, ensureDailyFile, readDailyFile, writeDailyFile } from "../lib/daily";
+import { addMemo, readDailyFileOrInit } from "../lib/daily";
 import { getAssetsDir, getTodayString } from "../lib/utils";
 
 // 拡張子から言語を推測するマップ
@@ -81,9 +81,6 @@ function handleMemo(
     const config = loadConfig();
     const projectName = config.currentProject || "default";
     const dateStr = getTodayString();
-
-    // 日報ファイルを確保
-    ensureDailyFile(projectRoot, projectName, dateStr);
 
     // --assets: ファイルをassetsにコピー
     if (options.assets) {
@@ -179,7 +176,11 @@ function addFileContent(
     const language = EXTENSION_TO_LANGUAGE[ext] || "";
 
     // メモセクションにコードブロックを追加
-    const dailyContent = readDailyFile(projectRoot, projectName, dateStr);
+    const { content: dailyContent, filePath: dailyFilePath } = readDailyFileOrInit(
+        projectRoot,
+        projectName,
+        dateStr,
+    );
     const memoLines = dailyContent.split("\n");
 
     // Memoセクションを探す
@@ -217,7 +218,7 @@ function addFileContent(
     ];
 
     memoLines.splice(insertIndex, 0, ...codeBlock);
-    writeDailyFile(projectRoot, memoLines.join("\n"), projectName, dateStr);
+    writeFileSync(dailyFilePath, memoLines.join("\n"), "utf-8");
 
     console.log(`✓ ファイル内容をメモに追加しました: ${filePath}:${startLine}-${endLine}`);
 }

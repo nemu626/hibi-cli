@@ -3,7 +3,7 @@
  * zsh/bash/fish用の補完機能
  */
 
-// @ts-ignore - omelette doesn't have type definitions
+// @ts-expect-error - omelette doesn't have type definitions
 import omelette from "omelette";
 import { loadConfig } from "./config";
 import { parseTasks, readDailyFile } from "./daily";
@@ -44,13 +44,19 @@ function getTodoTasks(): string[] {
  */
 const COMMANDS = [
     "init",
-    "todo", "t",
-    "done", "d",
-    "list", "l",
-    "memo", "m",
-    "edit", "e",
+    "todo",
+    "t",
+    "done",
+    "d",
+    "list",
+    "l",
+    "memo",
+    "m",
+    "edit",
+    "e",
     "sync",
-    "project", "p",
+    "project",
+    "p",
 ];
 
 /**
@@ -64,11 +70,14 @@ export function setupCompletion(): void {
         completion.on("command", ({ reply }: { reply: (values: string[]) => void }) => {
             reply(COMMANDS);
         });
-        completion.on("task", ({ before, reply }: { before: string; reply: (values: string[]) => void }) => {
-            if (before === "done" || before === "d") {
-                reply(getTodoTasks());
-            }
-        });
+        completion.on(
+            "task",
+            ({ before, reply }: { before: string; reply: (values: string[]) => void }) => {
+                if (before === "done" || before === "d") {
+                    reply(getTodoTasks());
+                }
+            },
+        );
         completion.init();
         process.exit(0);
     }
@@ -79,11 +88,14 @@ export function setupCompletion(): void {
         completion.on("command", ({ reply }: { reply: (values: string[]) => void }) => {
             reply(COMMANDS);
         });
-        completion.on("task", ({ before, reply }: { before: string; reply: (values: string[]) => void }) => {
-            if (before === "done" || before === "d") {
-                reply(getTodoTasks());
-            }
-        });
+        completion.on(
+            "task",
+            ({ before, reply }: { before: string; reply: (values: string[]) => void }) => {
+                if (before === "done" || before === "d") {
+                    reply(getTodoTasks());
+                }
+            },
+        );
         completion.setupShellInitFile();
         console.log("✓ Completion設定をインストールしました。シェルを再起動してください。");
         process.exit(0);
@@ -94,11 +106,13 @@ export function setupCompletion(): void {
     completion.on("command", ({ reply }: { reply: (values: string[]) => void }) => {
         reply(COMMANDS);
     });
-    completion.on("task", ({ before, reply }: { before: string; reply: (values: string[]) => void }) => {
-        if (before === "done" || before === "d") {
-            reply(getTodoTasks());
-        }
-    });
+    completion.on(
+        "task",
+        ({ before, reply }: { before: string; reply: (values: string[]) => void }) => {
+            if (before === "done" || before === "d") {
+                reply(getTodoTasks());
+            }
+        },
+    );
     completion.init();
 }
-

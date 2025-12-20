@@ -5,7 +5,7 @@
 
 import { Command } from "commander";
 import { loadConfig, requireProjectRoot } from "../lib/config";
-import { addTask, ensureDailyFile } from "../lib/daily";
+import { addTask } from "../lib/daily";
 import { getTodayString } from "../lib/utils";
 
 /**
@@ -32,9 +32,6 @@ function addTodoTask(text: string): void {
     const config = loadConfig();
     const projectName = config.currentProject || "default";
     const dateStr = getTodayString();
-
-    // 日報ファイルを確保
-    ensureDailyFile(projectRoot, projectName, dateStr);
 
     // タスクを追加
     addTask(projectRoot, text, projectName, dateStr);
