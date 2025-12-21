@@ -145,3 +145,21 @@ export async function hasRemote(cwd: string, remote: string = "origin"): Promise
     const result = await runGitCommand(["remote", "get-url", remote], cwd);
     return result.success;
 }
+
+/**
+ * リモートを追加
+ */
+export async function gitRemoteAdd(
+    cwd: string,
+    url: string,
+    remote: string = "origin",
+): Promise<GitResult> {
+    return runGitCommand(["remote", "add", remote, url], cwd);
+}
+
+/**
+ * リモート一覧を取得
+ */
+export async function gitRemoteList(cwd: string): Promise<GitResult> {
+    return runGitCommand(["remote", "-v"], cwd);
+}

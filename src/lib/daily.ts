@@ -150,46 +150,85 @@ export function addTask(
     taskText: string,
     projectName: string = "default",
     dateStr: string = getTodayString(),
-): void {
+    parentId?: number,
+): { success: boolean; error?: string } {
     ensureDailyFile(projectRoot, projectName, dateStr);
     const content = readDailyFile(projectRoot, projectName, dateStr);
     const lines = content.split("\n");
 
-    // ## Todo セクションを探して、その直後にタスクを追加
+    // ## Todo セクションを探す
     let todoSectionIndex = -1;
     let insertIndex = -1;
+    let inTodoSection = false;
+    let currentTaskId = 0;
+    let parentTaskIndent = 0;
+    let foundParent = false;
 
     for (let i = 0; i < lines.length; i++) {
-        if (lines[i]?.match(/^##\s+Todo/i)) {
+        const line = lines[i];
+
+        if (line.match(/^##\s+Todo/i)) {
             todoSectionIndex = i;
             insertIndex = i + 1;
+            inTodoSection = true;
+            continue;
+        }
 
-            // 既存のタスクの最後を探す
-            for (let j = i + 1; j < lines.length; j++) {
-                const line = lines[j];
-                if (line?.match(/^##\s+/)) {
-                    // 次のセクションに到達
-                    insertIndex = j;
-                    break;
+        if (inTodoSection) {
+            if (line.match(/^##\s+/)) {
+                // 次のセクションに到達
+                if (!parentId && insertIndex === -1) {
+                    insertIndex = i;
                 }
-                if (line?.match(/^\s*- \[[ x]\]/)) {
-                    // タスク行の後に挿入
-                    insertIndex = j + 1;
-                }
+                break;
             }
-            break;
+
+            const taskMatch = line.match(/^(\s*)- \[[ x]\]/);
+            if (taskMatch) {
+                currentTaskId++;
+                // タスク行の後に挿入（デフォルト）
+                if (!parentId) {
+                    insertIndex = i + 1;
+                } else if (currentTaskId === parentId) {
+                    // 親タスクを見つけた
+                    const indentStr = taskMatch[1] || "";
+                    parentTaskIndent = Math.floor(indentStr.length / 2);
+                    foundParent = true;
+                    insertIndex = i + 1;
+                } else if (foundParent) {
+                    // 親タスクのサブタスク（インデントが深い）をスキップ
+                    const indentStr = taskMatch[1] || "";
+                    const indent = Math.floor(indentStr.length / 2);
+                    if (indent > parentTaskIndent) {
+                        insertIndex = i + 1;
+                    } else {
+                        // 親タスクより浅いか同じインデントならここでストップ
+                        break;
+                    }
+                }
+            } else if (parentId && foundParent) {
+                 // 親タスク発見後でタスク以外の行ならストップ
+                 // ただし空行は許容するか？現状はリスト構造を維持するためここでストップとみなす
+                 // 厳密にはサブタスクが続く限りループしたいが、簡易実装として
+                 // サブタスクブロックの終わりに追加する
+            }
         }
     }
 
     if (todoSectionIndex === -1) {
-        console.error("エラー: Todoセクションが見つかりません");
-        return;
+        return { success: false, error: "Todoセクションが見つかりません" };
     }
 
-    const newTask: Task = { text: taskText, status: "todo", indent: 0 };
+    if (parentId && !foundParent) {
+        return { success: false, error: `親タスク(ID: ${parentId})が見つかりません` };
+    }
+
+    const indent = parentId ? parentTaskIndent + 1 : 0;
+    const newTask: Task = { text: taskText, status: "todo", indent };
     lines.splice(insertIndex, 0, formatTask(newTask));
 
     writeDailyFile(projectRoot, lines.join("\n"), projectName, dateStr);
+    return { success: true };
 }
 
 /**

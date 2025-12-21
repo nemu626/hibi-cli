@@ -16,9 +16,10 @@ export function createTodoCommand(): Command {
         .alias("t")
         .description("タスクを追加")
         .argument("<text...>", "タスクの内容")
-        .action((textParts: string[]) => {
+        .option("-p, --parent <id>", "親タスクIDを指定")
+        .action((textParts: string[], options: { parent?: string }) => {
             const text = textParts.join(" ");
-            addTodoTask(text);
+            addTodoTask(text, options.parent);
         });
 
     return command;
@@ -27,7 +28,7 @@ export function createTodoCommand(): Command {
 /**
  * タスクを追加
  */
-function addTodoTask(text: string): void {
+function addTodoTask(text: string, parentId?: string): void {
     const projectRoot = requireProjectRoot();
     const config = loadConfig();
     const projectName = config.currentProject || "default";
@@ -37,7 +38,17 @@ function addTodoTask(text: string): void {
     ensureDailyFile(projectRoot, projectName, dateStr);
 
     // タスクを追加
-    addTask(projectRoot, text, projectName, dateStr);
+    const result = addTask(
+        projectRoot,
+        text,
+        projectName,
+        dateStr,
+        parentId ? Number(parentId) : undefined,
+    );
 
-    console.log(`✓ タスクを追加しました: ${text}`);
+    if (result.success) {
+        console.log(`✓ タスクを追加しました: ${text}`);
+    } else {
+        console.error(`エラー: タスクの追加に失敗しました: ${result.error}`);
+    }
 }
