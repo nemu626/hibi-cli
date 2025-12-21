@@ -33,15 +33,14 @@ const DEFAULT_PROJECT_CONFIG: ProjectConfig = {
 export function loadGlobalConfig(): GlobalConfig {
     const configPath = getGlobalConfigPath();
 
-    if (!existsSync(configPath)) {
-        return DEFAULT_GLOBAL_CONFIG;
-    }
-
     try {
         const content = readFileSync(configPath, "utf-8");
         const config = parse(content) as GlobalConfig;
         return { ...DEFAULT_GLOBAL_CONFIG, ...config };
-    } catch (_error) {
+    } catch (error) {
+        if ((error as { code?: string }).code === "ENOENT") {
+            return DEFAULT_GLOBAL_CONFIG;
+        }
         console.error(`警告: グローバル設定の読み込みに失敗しました: ${configPath}`);
         return DEFAULT_GLOBAL_CONFIG;
     }
@@ -53,15 +52,14 @@ export function loadGlobalConfig(): GlobalConfig {
 export function loadProjectConfig(projectRoot: string): ProjectConfig {
     const configPath = join(projectRoot, "hibi.yaml");
 
-    if (!existsSync(configPath)) {
-        return DEFAULT_PROJECT_CONFIG;
-    }
-
     try {
         const content = readFileSync(configPath, "utf-8");
         const config = parse(content) as ProjectConfig;
         return { ...DEFAULT_PROJECT_CONFIG, ...config };
-    } catch (_error) {
+    } catch (error) {
+        if ((error as { code?: string }).code === "ENOENT") {
+            return DEFAULT_PROJECT_CONFIG;
+        }
         console.error(`警告: プロジェクト設定の読み込みに失敗しました: ${configPath}`);
         return DEFAULT_PROJECT_CONFIG;
     }

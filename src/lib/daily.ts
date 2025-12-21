@@ -70,11 +70,15 @@ export function readDailyFile(
 ): string {
     const filePath = getDailyFilePath(projectRoot, projectName, dateStr);
 
-    if (!existsSync(filePath)) {
-        return "";
+    try {
+        return readFileSync(filePath, "utf-8");
+    } catch (error) {
+        // ENOENT: File not found
+        if ((error as { code?: string }).code === "ENOENT") {
+            return "";
+        }
+        throw error;
     }
-
-    return readFileSync(filePath, "utf-8");
 }
 
 /**
