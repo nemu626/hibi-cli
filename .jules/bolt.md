@@ -1,0 +1,3 @@
+## 2024-05-22 - Optimizing File Reads: try-catch vs existsSync
+**Learning:** Replacing `existsSync` + `readFileSync` with `try-catch` (handling ENOENT) improves performance by ~42% (141ms -> 81ms for 10k ops) when the file exists, by saving a syscall. However, it is ~90% slower (60ms -> 115ms) when the file is missing due to exception handling overhead in Bun.
+**Action:** Prefer `try-catch` for file reads where the file is expected to exist (hot path). For checks where absence is common and not an error condition (logic branching), `existsSync` might still be valid, but for data loading, `try-catch` is generally superior for the happy path.
