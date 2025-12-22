@@ -3,7 +3,15 @@
  * メモを追加
  */
 
-import { copyFileSync, existsSync, mkdirSync, readFileSync } from "node:fs";
+import { spawn } from "node:child_process";
+import {
+    copyFileSync,
+    existsSync,
+    mkdirSync,
+    readFileSync,
+    unlinkSync,
+    writeFileSync,
+} from "node:fs";
 import { basename, extname, join } from "node:path";
 import { Command } from "commander";
 import { loadConfig, requireProjectRoot } from "../lib/config";
@@ -61,8 +69,19 @@ export function createMemoCommand(): Command {
         .option("-a, --assets <path>", "ファイルをassetsに追加")
         .option("-f, --file <path>", "テキストファイルの内容をメモに追加")
         .option("-l, --line <range>", "行範囲を指定 (例: 1-10, 5)")
+        .option("-e, --editor", "エディタでメモを作成")
+        .option("--view", "今日のメモを表示")
         .action(
-            (textParts: string[], options: { assets?: string; file?: string; line?: string }) => {
+            (
+                textParts: string[],
+                options: {
+                    assets?: string;
+                    file?: string;
+                    line?: string;
+                    view?: boolean;
+                    editor?: boolean;
+                },
+            ) => {
                 handleMemo(textParts, options);
             },
         );
@@ -75,7 +94,13 @@ export function createMemoCommand(): Command {
  */
 function handleMemo(
     textParts: string[],
-    options: { assets?: string; file?: string; line?: string },
+    options: {
+        assets?: string;
+        file?: string;
+        line?: string;
+        view?: boolean;
+        editor?: boolean;
+    },
 ): void {
     const projectRoot = requireProjectRoot();
     const config = loadConfig();
@@ -84,6 +109,12 @@ function handleMemo(
 
     // 日報ファイルを確保
     ensureDailyFile(projectRoot, projectName, dateStr);
+
+    // --view: メモを表示
+    if (options.view) {
+        showMemo(projectRoot, projectName, dateStr);
+        return;
+    }
 
     // --assets: ファイルをassetsにコピー
     if (options.assets) {
@@ -97,19 +128,97 @@ function handleMemo(
         return;
     }
 
+    // --editor: エディタで編集
+    if (options.editor) {
+        openEditor(projectRoot, projectName, dateStr);
+        return;
+    }
+
     // 通常のメモ
     const text = textParts.join(" ");
     if (!text) {
         console.log("使い方:");
         console.log("  hibi memo <テキスト>           - メモを追加");
+        console.log("  hibi memo --editor             - エディタでメモを作成");
         console.log("  hibi memo --assets <path>      - ファイルをassetsに追加");
         console.log("  hibi memo --file <path>        - ファイル内容をメモに追加");
         console.log("  hibi memo --file <path> -l 1-10 - 特定行をメモに追加");
+        console.log("  hibi memo --view               - 今日のメモを表示");
         return;
     }
 
     addMemo(projectRoot, text, projectName, dateStr);
     console.log(`✓ メモを追加しました: ${text}`);
+}
+
+/**
+ * エディタを開いてメモを作成
+ */
+async function openEditor(
+    projectRoot: string,
+    projectName: string,
+    dateStr: string,
+): Promise<void> {
+    const editor = process.env.EDITOR || "vi";
+    const tempFile = join(projectRoot, `.hibi_memo_${Date.now()}.md`);
+
+    writeFileSync(tempFile, "", "utf-8");
+
+    const p = spawn(editor, [tempFile], {
+        stdio: "inherit",
+    });
+
+    await new Promise<void>((resolve) => {
+        p.on("exit", () => {
+            resolve();
+        });
+    });
+
+    if (existsSync(tempFile)) {
+        const content = readFileSync(tempFile, "utf-8").trim();
+        if (content) {
+            addMemo(projectRoot, content, projectName, dateStr);
+            console.log("✓ メモを追加しました");
+        } else {
+            console.log("メモは空のため追加されませんでした");
+        }
+        unlinkSync(tempFile);
+    }
+}
+
+/**
+ * メモを表示
+ */
+function showMemo(projectRoot: string, projectName: string, dateStr: string): void {
+    const content = readDailyFile(projectRoot, projectName, dateStr);
+    const lines = content.split("\n");
+    let inMemoSection = false;
+    const memoLines: string[] = [];
+
+    for (const line of lines) {
+        // ## Memo セクションの開始を検出
+        if (line.match(/^##\s+Memo/i)) {
+            inMemoSection = true;
+            continue;
+        }
+
+        // 次のセクション（## で始まる行）で終了
+        if (inMemoSection && line.match(/^##\s+/)) {
+            break;
+        }
+
+        if (inMemoSection) {
+            memoLines.push(line);
+        }
+    }
+
+    if (memoLines.length === 0 || (memoLines.length === 1 && memoLines[0] === "")) {
+        console.log("メモはありません");
+    } else {
+        console.log(`\n📝 ${dateStr} のメモ:\n`);
+        console.log(memoLines.join("\n").trim());
+        console.log("");
+    }
 }
 
 /**

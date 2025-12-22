@@ -193,6 +193,83 @@ export function addTask(
 }
 
 /**
+ * サブタスクを追加
+ */
+export function addSubTask(
+    projectRoot: string,
+    parentId: number,
+    taskText: string,
+    projectName: string = "default",
+    dateStr: string = getTodayString(),
+): boolean {
+    ensureDailyFile(projectRoot, projectName, dateStr);
+    const content = readDailyFile(projectRoot, projectName, dateStr);
+    const lines = content.split("\n");
+
+    let inTodoSection = false;
+    let currentTaskId = 0;
+    let found = false;
+    let insertIndex = -1;
+    let parentIndent = 0;
+
+    for (let i = 0; i < lines.length; i++) {
+        const line = lines[i];
+
+        // ## Todo セクションの開始を検出
+        if (line.match(/^##\s+Todo/i)) {
+            inTodoSection = true;
+            continue;
+        }
+
+        // 次のセクション（## で始まる行）で終了
+        if (inTodoSection && line.match(/^##\s+/)) {
+            break;
+        }
+
+        if (inTodoSection) {
+            const taskMatch = line.match(/^(\s*)- \[([ x])\]\s*(.+)$/);
+            if (taskMatch) {
+                currentTaskId++;
+                if (currentTaskId === parentId) {
+                    found = true;
+                    parentIndent = Math.floor((taskMatch[1]?.length || 0) / 2);
+                    insertIndex = i + 1;
+
+                    // サブタスク（インデントが深い）をスキップ
+                    for (let j = i + 1; j < lines.length; j++) {
+                        const nextLine = lines[j];
+                        if (!nextLine) continue;
+
+                        const nextMatch = nextLine.match(/^(\s*)- \[([ x])\]/);
+                        if (nextMatch) {
+                            const nextIndent = Math.floor((nextMatch[1]?.length || 0) / 2);
+                            if (nextIndent > parentIndent) {
+                                insertIndex = j + 1;
+                            } else {
+                                break;
+                            }
+                        } else {
+                            break;
+                        }
+                    }
+                    break;
+                }
+            }
+        }
+    }
+
+    if (!found) {
+        return false;
+    }
+
+    const newTask: Task = { text: taskText, status: "todo", indent: parentIndent + 1 };
+    lines.splice(insertIndex, 0, formatTask(newTask));
+
+    writeDailyFile(projectRoot, lines.join("\n"), projectName, dateStr);
+    return true;
+}
+
+/**
  * タスクを完了にする
  */
 export function completeTask(
