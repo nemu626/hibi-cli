@@ -7,6 +7,7 @@ import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import {
+    addChildTask,
     addMemo,
     addTask,
     completeTask,
@@ -281,6 +282,57 @@ describe("daily", () => {
             const content = readDailyFile(projectRoot, "default", "20251211");
             expect(content).toContain("- メモ1");
             expect(content).toContain("- メモ2");
+        });
+    });
+
+    // ========================================
+    // addChildTask
+    // ========================================
+    describe("addChildTask", () => {
+        beforeEach(() => {
+            ensureDailyFile(projectRoot, "default", "20251211");
+            addTask(projectRoot, "親タスク1", "default", "20251211");
+            addTask(projectRoot, "親タスク2", "default", "20251211");
+        });
+
+        it("正常: 親タスクの直下に子タスクを追加", () => {
+            const result = addChildTask(projectRoot, "子タスク", 1, "default", "20251211");
+            expect(result.success).toBe(true);
+
+            const tasks = parseTasks(readDailyFile(projectRoot, "default", "20251211"));
+            expect(tasks).toHaveLength(3);
+            expect(tasks[1]?.text).toBe("子タスク");
+            expect(tasks[1]?.indent).toBe(1);
+        });
+
+        it("正常: 既存の子タスクの後に追加", () => {
+            addChildTask(projectRoot, "子タスク1", 1, "default", "20251211");
+            addChildTask(projectRoot, "子タスク2", 1, "default", "20251211");
+
+            const tasks = parseTasks(readDailyFile(projectRoot, "default", "20251211"));
+            expect(tasks).toHaveLength(4);
+            expect(tasks[1]?.text).toBe("子タスク1");
+            expect(tasks[2]?.text).toBe("子タスク2");
+            expect(tasks[1]?.indent).toBe(1);
+            expect(tasks[2]?.indent).toBe(1);
+        });
+
+        it("エッジ: 存在しない親ID → エラー", () => {
+            const result = addChildTask(projectRoot, "子タスク", 999, "default", "20251211");
+            expect(result.success).toBe(false);
+            expect(result.error).toContain("999");
+        });
+
+        it("正常: 2番目の親タスクに子タスクを追加", () => {
+            const result = addChildTask(projectRoot, "タスク2の子", 2, "default", "20251211");
+            expect(result.success).toBe(true);
+
+            const content = readDailyFile(projectRoot, "default", "20251211");
+            const lines = content.split("\n");
+
+            // 親タスク2の次の行に子タスクがあることを確認
+            const parentIndex = lines.findIndex((line) => line.includes("親タスク2"));
+            expect(lines[parentIndex + 1]).toContain("  - [ ] タスク2の子");
         });
     });
 });
