@@ -193,6 +193,80 @@ export function addTask(
 }
 
 /**
+ * 親タスクを指定して子タスクを追加
+ */
+export function addChildTask(
+    projectRoot: string,
+    taskText: string,
+    parentId: number,
+    projectName: string = "default",
+    dateStr: string = getTodayString(),
+): { success: boolean; error?: string } {
+    ensureDailyFile(projectRoot, projectName, dateStr);
+    const content = readDailyFile(projectRoot, projectName, dateStr);
+    const lines = content.split("\n");
+
+    let inTodoSection = false;
+    let currentTaskId = 0;
+    let parentLineIndex = -1;
+    let parentIndent = 0;
+    let insertIndex = -1;
+
+    for (let i = 0; i < lines.length; i++) {
+        const line = lines[i];
+        if (!line && line !== "") continue;
+
+        // ## Todo セクションの開始を検出
+        if (line.match(/^##\s+Todo/i)) {
+            inTodoSection = true;
+            continue;
+        }
+
+        // 次のセクション（## で始まる行）で終了
+        if (inTodoSection && line.match(/^##\s+/)) {
+            break;
+        }
+
+        // タスク行をカウント
+        if (inTodoSection) {
+            const taskMatch = line.match(/^(\s*)- \[([ x])\]\s*(.+)$/);
+            if (taskMatch) {
+                currentTaskId++;
+                const taskIndent = Math.floor((taskMatch[1]?.length || 0) / 2);
+
+                if (currentTaskId === parentId) {
+                    // 親タスクを発見
+                    parentLineIndex = i;
+                    parentIndent = taskIndent;
+                    insertIndex = i + 1;
+                } else if (parentLineIndex !== -1) {
+                    // 親タスク発見後、子タスクの位置を探す
+                    if (taskIndent > parentIndent) {
+                        // 親の子タスク → 挿入位置を更新
+                        insertIndex = i + 1;
+                    } else {
+                        // 親のレベル以下に戻った → ループを抜ける
+                        break;
+                    }
+                }
+            }
+        }
+    }
+
+    if (parentLineIndex === -1) {
+        return { success: false, error: `ID ${parentId} のタスクが見つかりません` };
+    }
+
+    // 子タスクは親のインデント +1
+    const childIndent = parentIndent + 1;
+    const newTask: Task = { text: taskText, status: "todo", indent: childIndent };
+    lines.splice(insertIndex, 0, formatTask(newTask));
+
+    writeDailyFile(projectRoot, lines.join("\n"), projectName, dateStr);
+    return { success: true };
+}
+
+/**
  * タスクを完了にする
  */
 export function completeTask(

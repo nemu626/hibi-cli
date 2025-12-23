@@ -110,4 +110,52 @@ describe("E2E: タスク管理", () => {
         const output = result.stdout + result.stderr;
         expect(output.length).toBeGreaterThan(0); // 何かしらの出力がある
     });
+
+    // ========================================
+    // 子タスク (--parent/-p) のテスト
+    // ========================================
+
+    it("todo --parent で子タスクを追加", () => {
+        // 親タスクを追加
+        runHibi(["todo", "親タスク"], testDir);
+
+        // 子タスクを追加 (ID=1)
+        const result = runHibi(["todo", "--parent", "1", "子タスク"], testDir);
+        expect(result.exitCode).toBe(0);
+        expect(result.stdout).toContain("子タスクを追加しました");
+        expect(result.stdout).toContain("親ID: 1");
+
+        // リストで確認
+        const listResult = runHibi(["list"], testDir);
+        expect(listResult.stdout).toContain("親タスク");
+        expect(listResult.stdout).toContain("子タスク");
+    });
+
+    it("todo -p で子タスクを追加（短縮形）", () => {
+        runHibi(["todo", "親タスク"], testDir);
+
+        const result = runHibi(["todo", "-p", "1", "短縮形テスト"], testDir);
+        expect(result.exitCode).toBe(0);
+        expect(result.stdout).toContain("子タスクを追加しました");
+    });
+
+    it("todo --parent で存在しないIDを指定するとエラー", () => {
+        runHibi(["todo", "タスク1"], testDir);
+
+        const result = runHibi(["todo", "--parent", "999", "子タスク"], testDir);
+        expect(result.exitCode).toBe(1);
+        expect(result.stderr).toContain("999");
+    });
+
+    it("todo -p で複数の子タスクを追加", () => {
+        runHibi(["todo", "親タスク"], testDir);
+        runHibi(["todo", "-p", "1", "子タスク1"], testDir);
+        runHibi(["todo", "-p", "1", "子タスク2"], testDir);
+
+        // viewでマークダウン構造を確認
+        const viewResult = runHibi(["view", "-t"], testDir);
+        expect(viewResult.stdout).toContain("親タスク");
+        expect(viewResult.stdout).toContain("子タスク1");
+        expect(viewResult.stdout).toContain("子タスク2");
+    });
 });
