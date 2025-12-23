@@ -3,7 +3,17 @@
  * メモを追加
  */
 
-import { copyFileSync, existsSync, mkdirSync, readFileSync } from "node:fs";
+import { spawnSync } from "node:child_process";
+import {
+    copyFileSync,
+    existsSync,
+    mkdirSync,
+    mkdtempSync,
+    readFileSync,
+    unlinkSync,
+    writeFileSync,
+} from "node:fs";
+import { tmpdir } from "node:os";
 import { basename, extname, join } from "node:path";
 import { Command } from "commander";
 import { loadConfig, requireProjectRoot } from "../lib/config";
@@ -61,8 +71,12 @@ export function createMemoCommand(): Command {
         .option("-a, --assets <path>", "ファイルをassetsに追加")
         .option("-f, --file <path>", "テキストファイルの内容をメモに追加")
         .option("-l, --line <range>", "行範囲を指定 (例: 1-10, 5)")
+        .option("-e, --editor", "エディタでメモを編集")
         .action(
-            (textParts: string[], options: { assets?: string; file?: string; line?: string }) => {
+            (
+                textParts: string[],
+                options: { assets?: string; file?: string; line?: string; editor?: boolean },
+            ) => {
                 handleMemo(textParts, options);
             },
         );
@@ -75,7 +89,7 @@ export function createMemoCommand(): Command {
  */
 function handleMemo(
     textParts: string[],
-    options: { assets?: string; file?: string; line?: string },
+    options: { assets?: string; file?: string; line?: string; editor?: boolean },
 ): void {
     const projectRoot = requireProjectRoot();
     const config = loadConfig();
@@ -97,6 +111,12 @@ function handleMemo(
         return;
     }
 
+    // --editor: エディタでメモを編集
+    if (options.editor) {
+        editMemoWithEditor(projectRoot, projectName, dateStr);
+        return;
+    }
+
     // 通常のメモ
     const text = textParts.join(" ");
     if (!text) {
@@ -105,11 +125,78 @@ function handleMemo(
         console.log("  hibi memo --assets <path>      - ファイルをassetsに追加");
         console.log("  hibi memo --file <path>        - ファイル内容をメモに追加");
         console.log("  hibi memo --file <path> -l 1-10 - 特定行をメモに追加");
+        console.log("  hibi memo --editor             - エディタでメモを編集");
         return;
     }
 
     addMemo(projectRoot, text, projectName, dateStr);
     console.log(`✓ メモを追加しました: ${text}`);
+}
+
+/**
+ * エディタでメモを編集して追加
+ */
+function editMemoWithEditor(projectRoot: string, projectName: string, dateStr: string): void {
+    const config = loadConfig();
+    const editor = config.editor || process.env.EDITOR || "vi";
+
+    // 一時ファイルを作成
+    const tempDir = mkdtempSync(join(tmpdir(), "hibi-memo-"));
+    const tempFile = join(tempDir, "memo.md");
+    writeFileSync(tempFile, "", "utf-8");
+
+    console.log("エディタでメモを入力してください...");
+
+    // エディタを起動（同期的に待機）
+    const result = spawnSync(editor, [tempFile], {
+        stdio: "inherit",
+    });
+
+    if (result.error) {
+        console.error(`エラー: エディタの起動に失敗しました: ${result.error.message}`);
+        console.log("ヒント: EDITOR環境変数を設定するか、hibi.yamlでeditorを指定してください");
+        cleanupTempFile(tempFile, tempDir);
+        return;
+    }
+
+    if (result.status !== 0) {
+        console.log("編集がキャンセルされました");
+        cleanupTempFile(tempFile, tempDir);
+        return;
+    }
+
+    // メモ内容を読み込み
+    const memoContent = readFileSync(tempFile, "utf-8").trim();
+
+    // 一時ファイルを削除
+    cleanupTempFile(tempFile, tempDir);
+
+    if (!memoContent) {
+        console.log("メモが空のため追加をスキップしました");
+        return;
+    }
+
+    // メモを追加
+    addMemo(projectRoot, memoContent, projectName, dateStr);
+    console.log("✓ メモを追加しました");
+}
+
+/**
+ * 一時ファイルとディレクトリをクリーンアップ
+ */
+function cleanupTempFile(tempFile: string, tempDir: string): void {
+    try {
+        if (existsSync(tempFile)) {
+            unlinkSync(tempFile);
+        }
+        if (existsSync(tempDir)) {
+            // ディレクトリを削除（rmdirSync は空のディレクトリのみ削除可能）
+            const { rmdirSync } = require("node:fs");
+            rmdirSync(tempDir);
+        }
+    } catch {
+        // クリーンアップエラーは無視
+    }
 }
 
 /**
