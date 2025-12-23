@@ -70,11 +70,40 @@ export function readDailyFile(
 ): string {
     const filePath = getDailyFilePath(projectRoot, projectName, dateStr);
 
-    if (!existsSync(filePath)) {
-        return "";
+    try {
+        return readFileSync(filePath, "utf-8");
+    } catch (e: any) {
+        if (e.code === "ENOENT") {
+            return "";
+        }
+        throw e;
     }
+}
 
-    return readFileSync(filePath, "utf-8");
+/**
+ * 日報ファイルを読み込むか、存在しない場合は初期化して返す
+ */
+export function readOrInitDailyFile(
+    projectRoot: string,
+    projectName: string = "default",
+    dateStr: string = getTodayString(),
+): { content: string; filePath: string } {
+    const filePath = getDailyFilePath(projectRoot, projectName, dateStr);
+    try {
+        const content = readFileSync(filePath, "utf-8");
+        return { content, filePath };
+    } catch (e: any) {
+        if (e.code === "ENOENT") {
+            const dir = dirname(filePath);
+            if (!existsSync(dir)) {
+                mkdirSync(dir, { recursive: true });
+            }
+            const content = generateDailyTemplate(dateStr);
+            writeFileSync(filePath, content, "utf-8");
+            return { content, filePath };
+        }
+        throw e;
+    }
 }
 
 /**
@@ -86,7 +115,10 @@ export function writeDailyFile(
     projectName: string = "default",
     dateStr: string = getTodayString(),
 ): void {
-    const filePath = ensureDailyFile(projectRoot, projectName, dateStr);
+    const filePath = getDailyFilePath(projectRoot, projectName, dateStr);
+    const dir = dirname(filePath);
+    // ディレクトリが存在しない場合は作成
+    mkdirSync(dir, { recursive: true });
     writeFileSync(filePath, content, "utf-8");
 }
 
@@ -151,8 +183,7 @@ export function addTask(
     projectName: string = "default",
     dateStr: string = getTodayString(),
 ): void {
-    ensureDailyFile(projectRoot, projectName, dateStr);
-    const content = readDailyFile(projectRoot, projectName, dateStr);
+    const { content, filePath } = readOrInitDailyFile(projectRoot, projectName, dateStr);
     const lines = content.split("\n");
 
     // ## Todo セクションを探して、その直後にタスクを追加
@@ -189,7 +220,7 @@ export function addTask(
     const newTask: Task = { text: taskText, status: "todo", indent: 0 };
     lines.splice(insertIndex, 0, formatTask(newTask));
 
-    writeDailyFile(projectRoot, lines.join("\n"), projectName, dateStr);
+    writeFileSync(filePath, lines.join("\n"), "utf-8");
 }
 
 /**
@@ -295,8 +326,7 @@ export function addMemo(
     projectName: string = "default",
     dateStr: string = getTodayString(),
 ): void {
-    ensureDailyFile(projectRoot, projectName, dateStr);
-    const content = readDailyFile(projectRoot, projectName, dateStr);
+    const { content, filePath } = readOrInitDailyFile(projectRoot, projectName, dateStr);
     const lines = content.split("\n");
 
     // ## Memo セクションを探して、その直後にメモを追加
@@ -330,5 +360,5 @@ export function addMemo(
     // メモを追加（リスト形式）
     lines.splice(insertIndex, 0, `- ${memoText}`);
 
-    writeDailyFile(projectRoot, lines.join("\n"), projectName, dateStr);
+    writeFileSync(filePath, lines.join("\n"), "utf-8");
 }
