@@ -26,6 +26,8 @@
   },
   "dependencies": {
     "commander": "^14.0.2",
+    "marked": "^17.0.1",
+    "marked-terminal": "^7.3.0",
     "omelette": "^0.4.17",
     "yaml": "^2.8.2"
   }

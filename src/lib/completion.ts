@@ -57,6 +57,8 @@ const COMMANDS = [
     "sync",
     "project",
     "p",
+    "view",
+    "v",
 ];
 
 /**
