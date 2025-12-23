@@ -109,4 +109,11 @@ describe("E2E: メモ機能", () => {
         const content = readFileSync(dailyPath, "utf-8");
         expect(content).toContain("エイリアスメモ");
     });
+
+    it("--editor オプションがヘルプに表示される", () => {
+        // memo コマンドを引数なしで実行すると使い方が表示される
+        const result = runHibi(["memo"], testDir);
+        expect(result.stdout).toContain("--editor");
+        expect(result.stdout).toContain("エディタでメモを編集");
+    });
 });
