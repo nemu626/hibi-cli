@@ -7,7 +7,7 @@ import { existsSync, mkdirSync, writeFileSync } from "node:fs";
 import { join, resolve } from "node:path";
 import { Command } from "commander";
 import { saveProjectConfig } from "../lib/config";
-import { gitClone, gitInit, isGitRepo } from "../lib/git";
+import { addRemote, gitClone, gitInit, isGitRepo } from "../lib/git";
 import type { ProjectConfig } from "../types";
 
 /**
@@ -23,7 +23,8 @@ export function createInitCommand(): Command {
         )
         .option("--clone <url>", "既存のGitリポジトリをクローンして初期化")
         .option("--no-git", "Gitリポジトリを初期化しない")
-        .action(async (directory: string, options: { clone?: string; git: boolean }) => {
+        .option("--add-remote <url>", "リモートリポジトリを追加 (origin)")
+        .action(async (directory: string, options: { clone?: string; git: boolean; addRemote?: string }) => {
             await initProject(directory, options);
         });
 
@@ -46,8 +47,14 @@ function getRepoNameFromUrl(url: string): string {
  */
 async function initProject(
     directory: string,
-    options: { clone?: string; git: boolean },
+    options: { clone?: string; git: boolean; addRemote?: string },
 ): Promise<void> {
+    // --no-git と --add-remote の組み合わせはエラー
+    if (!options.git && options.addRemote) {
+        console.error("エラー: --no-git と --add-remote は同時に使用できません");
+        process.exit(1);
+    }
+
     // クローンの場合、directoryがデフォルト(".")ならURLからリポジトリ名を抽出
     let targetDir: string;
     if (options.clone && directory === ".") {
@@ -100,6 +107,17 @@ async function initProject(
                 console.log("✓ Gitリポジトリを初期化しました");
             } else {
                 console.warn(`警告: Gitの初期化に失敗しました: ${initResult.error}`);
+            }
+        }
+
+        // リモートを追加（--add-remote オプション）
+        if (options.addRemote) {
+            console.log(`リモートを追加中: ${options.addRemote}`);
+            const remoteResult = await addRemote(targetDir, "origin", options.addRemote);
+            if (remoteResult.success) {
+                console.log("✓ リモートを追加しました (origin)");
+            } else {
+                console.warn(`警告: リモートの追加に失敗しました: ${remoteResult.error}`);
             }
         }
     }

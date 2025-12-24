@@ -61,4 +61,25 @@ describe("init command", () => {
         expect(result.exitCode).toBe(0);
         expect(existsSync(join(testDir, subDir, "hibi.yaml"))).toBe(true);
     });
+
+    it("正常: --add-remote でリモートを設定", () => {
+        const result = runHibi(["init", ".", "--add-remote", "https://github.com/user/repo.git"], testDir);
+
+        expect(result.exitCode).toBe(0);
+        expect(result.stdout).toContain("リモートを追加しました");
+
+        // git remote -v で確認
+        const { spawnSync } = require("node:child_process");
+        const gitResult = spawnSync("git", ["remote", "-v"], { cwd: testDir, encoding: "utf-8" });
+        expect(gitResult.stdout).toContain("origin");
+        expect(gitResult.stdout).toContain("https://github.com/user/repo.git");
+    });
+
+    it("エラー: --no-git と --add-remote の組み合わせ", () => {
+        const result = runHibi(["init", ".", "--no-git", "--add-remote", "https://example.com/repo"], testDir);
+
+        expect(result.exitCode).toBe(1);
+        expect(result.stderr).toContain("--no-git と --add-remote は同時に使用できません");
+    });
 });
+

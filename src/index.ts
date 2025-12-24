@@ -14,6 +14,7 @@ import { createInitCommand } from "./commands/init";
 import { createListCommand } from "./commands/list";
 import { createMemoCommand } from "./commands/memo";
 import { createProjectCommand } from "./commands/project";
+import { createRemoteCommand } from "./commands/remote";
 import { createSyncCommand } from "./commands/sync";
 import { createTodoCommand } from "./commands/todo";
 import { createViewCommand } from "./commands/view";
@@ -41,6 +42,7 @@ program.addCommand(createMemoCommand());
 program.addCommand(createEditCommand());
 program.addCommand(createSyncCommand());
 program.addCommand(createProjectCommand());
+program.addCommand(createRemoteCommand());
 program.addCommand(createViewCommand());
 
 // パースして実行
