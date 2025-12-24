@@ -7,6 +7,7 @@ import { existsSync, mkdirSync, readdirSync, renameSync } from "node:fs";
 import { join } from "node:path";
 import { Command } from "commander";
 import { loadConfig, loadGlobalConfig, requireProjectRoot, saveGlobalConfig } from "../lib/config";
+import { getRemoteUrl, isGitRepo } from "../lib/git";
 
 /**
  * projectコマンドを作成
@@ -19,8 +20,8 @@ export function createProjectCommand(): Command {
         .command("list")
         .alias("ls")
         .description("プロジェクト一覧を表示")
-        .action(() => {
-            listProjects();
+        .action(async () => {
+            await listProjects();
         });
 
     // サブコマンド: switch
@@ -63,7 +64,7 @@ export function createProjectCommand(): Command {
 /**
  * プロジェクト一覧を表示
  */
-function listProjects(): void {
+async function listProjects(): Promise<void> {
     const projectRoot = requireProjectRoot();
     const config = loadConfig();
     const currentProject = config.currentProject || "default";
@@ -79,6 +80,13 @@ function listProjects(): void {
         .filter((dirent) => dirent.isDirectory())
         .map((dirent) => dirent.name);
 
+    // Gitリポジトリかどうか確認し、リモートURLを取得
+    const isRepo = await isGitRepo(projectRoot);
+    let remoteUrl: string | null = null;
+    if (isRepo) {
+        remoteUrl = await getRemoteUrl(projectRoot);
+    }
+
     console.log("\n📁 プロジェクト一覧:\n");
 
     for (const project of projects) {
@@ -87,6 +95,11 @@ function listProjects(): void {
         const style = isCurrent ? "\x1b[32m" : "";
         const reset = isCurrent ? "\x1b[0m" : "";
         console.log(`${marker}${style}${project}${reset}`);
+    }
+
+    // リモートURLがあれば表示
+    if (remoteUrl) {
+        console.log(`\n🔗 リモート: ${remoteUrl}`);
     }
 
     console.log("");
