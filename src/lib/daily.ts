@@ -39,6 +39,14 @@ export function dailyFileExists(
 }
 
 /**
+ * 日報ディレクトリが存在することを保証（なければ作成）
+ */
+function ensureDailyDir(filePath: string): void {
+    const dir = dirname(filePath);
+    mkdirSync(dir, { recursive: true });
+}
+
+/**
  * 日報ファイルを作成（存在しない場合のみ）
  */
 export function ensureDailyFile(
@@ -49,10 +57,7 @@ export function ensureDailyFile(
     const filePath = getDailyFilePath(projectRoot, projectName, dateStr);
 
     if (!existsSync(filePath)) {
-        const dir = dirname(filePath);
-        if (!existsSync(dir)) {
-            mkdirSync(dir, { recursive: true });
-        }
+        ensureDailyDir(filePath);
         const template = generateDailyTemplate(dateStr);
         writeFileSync(filePath, template, "utf-8");
     }
@@ -86,7 +91,11 @@ export function writeDailyFile(
     projectName: string = "default",
     dateStr: string = getTodayString(),
 ): void {
-    const filePath = ensureDailyFile(projectRoot, projectName, dateStr);
+    const filePath = getDailyFilePath(projectRoot, projectName, dateStr);
+
+    // ディレクトリのみ保証し、ファイル存在チェックやテンプレート生成はスキップ
+    ensureDailyDir(filePath);
+
     writeFileSync(filePath, content, "utf-8");
 }
 

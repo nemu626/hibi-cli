@@ -160,5 +160,3 @@ export async function getRemoteUrl(cwd: string, remote: string = "origin"): Prom
     const result = await runGitCommand(["remote", "get-url", remote], cwd);
     return result.success ? result.output : null;
 }
-
-
