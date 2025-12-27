@@ -18,6 +18,8 @@ import { createRemoteCommand } from "./commands/remote";
 import { createSyncCommand } from "./commands/sync";
 import { createTodoCommand } from "./commands/todo";
 import { createViewCommand } from "./commands/view";
+import { createSummaryCommand } from "./commands/summary";
+import { createLogCommand } from "./commands/log";
 import { setupCompletion } from "./lib/completion";
 
 // Shell Completionのセットアップ（--completion, --completion-install の処理）
@@ -44,6 +46,8 @@ program.addCommand(createSyncCommand());
 program.addCommand(createProjectCommand());
 program.addCommand(createRemoteCommand());
 program.addCommand(createViewCommand());
+program.addCommand(createSummaryCommand());
+program.addCommand(createLogCommand());
 
 // パースして実行
 program.parse(process.argv);
