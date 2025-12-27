@@ -162,3 +162,32 @@ export async function getRemoteUrl(cwd: string, remote: string = "origin"): Prom
 }
 
 
+
+/**
+ * 現在のユーザーEmailを取得
+ */
+export async function getCurrentUserEmail(cwd: string): Promise<string | null> {
+    const result = await runGitCommand(["config", "user.email"], cwd);
+    return result.success ? result.output.trim() : null;
+}
+
+/**
+ * Gitコミット履歴を取得 (日時指定、著者指定)
+ */
+export async function getGitCommits(cwd: string, since: Date, author?: string): Promise<string[]> {
+    // ISO形式だとGitが認識しない場合があるので、YYYY-MM-DD HH:MM:SS形式などが無難だが、
+    // --since は ISO 8601 もサポートしている。
+    const sinceStr = since.toISOString();
+
+    // 全ブランチを対象にする (--branches) か、HEADのみか。日報のコンテキストとしては全ブランチが見えたほうが良さそう。
+    const args = ["log", "--all", `--since=${sinceStr}`, "--pretty=format:%h %s (%an)"];
+
+    if (author) {
+        args.push(`--author=${author}`);
+    }
+
+    const result = await runGitCommand(args, cwd);
+    if (!result.success) return [];
+
+    return result.output.split('\n').filter(line => line.length > 0);
+}

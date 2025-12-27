@@ -406,3 +406,82 @@ export function addMemo(
 
     writeDailyFile(projectRoot, lines.join("\n"), projectName, dateStr);
 }
+
+/**
+ * 特定のセクションの内容を取得
+ */
+export function getSectionContent(
+    content: string,
+    sectionName: string,
+): string {
+    const lines = content.split("\n");
+    const sectionLines: string[] = [];
+    let inSection = false;
+
+    for (const line of lines) {
+        if (line.match(new RegExp(`^##\\s+${sectionName}`, "i"))) {
+            inSection = true;
+            continue;
+        }
+
+        if (inSection) {
+            if (line.match(/^##\s+/)) {
+                break;
+            }
+            sectionLines.push(line);
+        }
+    }
+
+    return sectionLines.join("\n").trim();
+}
+
+/**
+ * 特定のセクションを更新
+ */
+export function updateSection(
+    projectRoot: string,
+    sectionName: string,
+    newContent: string,
+    projectName: string = "default",
+    dateStr: string = getTodayString(),
+): void {
+    ensureDailyFile(projectRoot, projectName, dateStr);
+    const content = readDailyFile(projectRoot, projectName, dateStr);
+    const lines = content.split("\n");
+
+    // セクションを探す
+    let startLine = -1;
+    let endLine = -1;
+
+    for (let i = 0; i < lines.length; i++) {
+        const line = lines[i];
+        if (line && line.match(new RegExp(`^##\\s+${sectionName}`, "i"))) {
+            startLine = i;
+            // 次のセクションを探す
+            for (let j = i + 1; j < lines.length; j++) {
+                const nextLine = lines[j];
+                if (nextLine && nextLine.match(/^##\s+/)) {
+                    endLine = j;
+                    break;
+                }
+            }
+            if (endLine === -1) {
+                endLine = lines.length;
+            }
+            break;
+        }
+    }
+
+    if (startLine === -1) {
+        // セクションがない場合はファイルの末尾に追加
+        lines.push("");
+        lines.push(`## ${sectionName}`);
+        lines.push(newContent);
+    } else {
+        // 既存のセクションを置換
+        // startLine + 1 から endLine の前までを削除し、新しいコンテンツを挿入
+        lines.splice(startLine + 1, endLine - (startLine + 1), newContent);
+    }
+
+    writeDailyFile(projectRoot, lines.join("\n"), projectName, dateStr);
+}

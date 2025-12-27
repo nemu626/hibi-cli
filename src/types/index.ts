@@ -21,6 +21,7 @@ export interface GlobalConfig {
     llm?: LLMConfig;
     editor?: string;
     defaultProject?: string;
+    historyFile?: string; // シェル履歴ファイルのパス (デフォルト: ~/.zsh_history)
 }
 
 // プロジェクト設定 (<projectRoot>/hibi.yaml)
@@ -28,6 +29,7 @@ export interface ProjectConfig {
     remote?: string;
     sync?: SyncMode;
     llm?: LLMConfig;
+    gitRepositories?: string[];
 }
 
 // マージされた設定
