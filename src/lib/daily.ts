@@ -361,6 +361,114 @@ export function completeTaskById(
 }
 
 /**
+ * IDを指定してタスクを未完了に戻す
+ */
+export function uncompleteTaskById(
+    projectRoot: string,
+    taskId: number,
+    projectName: string = "default",
+    dateStr: string = getTodayString(),
+): { success: boolean; taskText?: string } {
+    const content = readDailyFile(projectRoot, projectName, dateStr);
+    const lines = content.split("\n");
+    let inTodoSection = false;
+    let currentTaskId = 0;
+    let found = false;
+    let taskText: string | undefined;
+
+    for (let i = 0; i < lines.length; i++) {
+        const line = lines[i];
+        if (!line) continue;
+
+        if (line.match(/^##\s+Todo/i)) {
+            inTodoSection = true;
+            continue;
+        }
+
+        if (inTodoSection && line.match(/^##\s+/)) {
+            break;
+        }
+
+        if (inTodoSection) {
+            const taskMatch = line.match(/^(\s*)- \[([ x])\]\s*(.+)$/);
+            if (taskMatch) {
+                currentTaskId++;
+                if (currentTaskId === taskId) {
+                    // 完了タスクの場合のみ未完了に戻す
+                    if (taskMatch[2] === "x") {
+                        const indent = taskMatch[1] || "";
+                        taskText = taskMatch[3] || "";
+                        lines[i] = `${indent}- [ ] ${taskText}`;
+                        found = true;
+                    } else {
+                        // 既に未完了
+                        taskText = taskMatch[3] || "";
+                    }
+                    break;
+                }
+            }
+        }
+    }
+
+    if (found) {
+        writeDailyFile(projectRoot, lines.join("\n"), projectName, dateStr);
+    }
+
+    return { success: found, taskText };
+}
+
+/**
+ * IDを指定してタスクのテキストを更新
+ */
+export function updateTaskById(
+    projectRoot: string,
+    taskId: number,
+    newText: string,
+    projectName: string = "default",
+    dateStr: string = getTodayString(),
+): { success: boolean } {
+    const content = readDailyFile(projectRoot, projectName, dateStr);
+    const lines = content.split("\n");
+    let inTodoSection = false;
+    let currentTaskId = 0;
+    let found = false;
+
+    for (let i = 0; i < lines.length; i++) {
+        const line = lines[i];
+        if (!line) continue;
+
+        if (line.match(/^##\s+Todo/i)) {
+            inTodoSection = true;
+            continue;
+        }
+
+        if (inTodoSection && line.match(/^##\s+/)) {
+            break;
+        }
+
+        if (inTodoSection) {
+            const taskMatch = line.match(/^(\s*)- \[([ x])\]\s*(.+)$/);
+            if (taskMatch) {
+                currentTaskId++;
+                if (currentTaskId === taskId) {
+                    const indent = taskMatch[1] || "";
+                    const status = taskMatch[2] || " ";
+                    lines[i] = `${indent}- [${status}] ${newText}`;
+                    found = true;
+                    break;
+                }
+            }
+        }
+    }
+
+    if (found) {
+        writeDailyFile(projectRoot, lines.join("\n"), projectName, dateStr);
+    }
+
+    return { success: found };
+}
+
+/**
  * 日報にメモを追加
  */
 export function addMemo(
@@ -409,20 +517,31 @@ export function addMemo(
 
 /**
  * 特定のセクションの内容を取得
+ * 既知のセクションヘッダーのみを境界として認識する
  */
 export function getSectionContent(content: string, sectionName: string): string {
     const lines = content.split("\n");
     const sectionLines: string[] = [];
     let inSection = false;
 
+    // 既知のセクションヘッダー（大文字小文字区別なし）
+    const knownSections = [
+        /^##\s+Todo$/i,
+        /^##\s+Memo$/i,
+        /^##\s+Summary by LLM$/i,
+        /^##\s+Log By LLM$/i,
+    ];
+
     for (const line of lines) {
-        if (line.match(new RegExp(`^##\\s+${sectionName}`, "i"))) {
+        if (line.match(new RegExp(`^##\\s+${sectionName}$`, "i"))) {
             inSection = true;
             continue;
         }
 
         if (inSection) {
-            if (line.match(/^##\s+/)) {
+            // 既知のセクションヘッダーの場合のみ終了
+            const isKnownSection = knownSections.some((pattern) => line.match(pattern));
+            if (isKnownSection) {
                 break;
             }
             sectionLines.push(line);

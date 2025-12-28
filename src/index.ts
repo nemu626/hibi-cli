@@ -21,6 +21,7 @@ import { createSummaryCommand } from "./commands/summary";
 import { createSyncCommand } from "./commands/sync";
 import { createTodoCommand } from "./commands/todo";
 import { createViewCommand } from "./commands/view";
+import { createWebCommand } from "./commands/web";
 import { setupCompletion } from "./lib/completion";
 
 // Shell Completionのセットアップ（--completion, --completion-install の処理）
@@ -50,6 +51,7 @@ program.addCommand(createViewCommand());
 program.addCommand(createSummaryCommand());
 program.addCommand(createLogCommand());
 program.addCommand(createConfigCommand());
+program.addCommand(createWebCommand());
 
 // パースして実行
 program.parse(process.argv);

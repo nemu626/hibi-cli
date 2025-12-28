@@ -11,6 +11,21 @@ import {
     saveGlobalConfigHandler,
     saveProjectConfigHandler,
 } from "./config-api";
+import {
+    addChildTaskHandler,
+    addMemoHandler,
+    addTaskHandler,
+    completeTaskHandler,
+    generateLogHandler,
+    generateSummaryHandler,
+    getDailyHandler,
+    getProjectDatesHandler,
+    getProjectsHandler,
+    getTodayHandler,
+    uncompleteTaskHandler,
+    updateMemoHandler,
+    updateTaskHandler,
+} from "./daily-api";
 
 // ビルド済みSvelteアプリのパス
 const WEB_DIST_DIR = join(import.meta.dirname, "../web/dist");
@@ -67,7 +82,7 @@ async function handleRequest(request: Request): Promise<Response> {
     // CORS headers for development
     const corsHeaders = {
         "Access-Control-Allow-Origin": "*",
-        "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
+        "Access-Control-Allow-Methods": "GET, POST, PUT, PATCH, DELETE, OPTIONS",
         "Access-Control-Allow-Headers": "Content-Type",
     };
 
@@ -80,6 +95,7 @@ async function handleRequest(request: Request): Promise<Response> {
     if (pathname.startsWith("/api/")) {
         let response: Response;
 
+        // Config API routes
         if (pathname === "/api/config" && method === "GET") {
             response = getConfigHandler();
         } else if (pathname === "/api/config/global" && method === "POST") {
@@ -88,6 +104,62 @@ async function handleRequest(request: Request): Promise<Response> {
             response = await saveProjectConfigHandler(request);
         } else if (pathname === "/api/browse-file" && method === "POST") {
             response = await browseFileHandler(request);
+        }
+        // Daily API routes
+        else if (pathname === "/api/today" && method === "GET") {
+            response = getTodayHandler();
+        } else if (pathname === "/api/projects" && method === "GET") {
+            response = getProjectsHandler();
+        } else if (pathname.match(/^\/api\/projects\/[^/]+\/dates$/) && method === "GET") {
+            const projectName = pathname.split("/")[3]!;
+            response = getProjectDatesHandler(projectName);
+        } else if (pathname.match(/^\/api\/daily\/[^/]+\/[^/]+$/) && method === "GET") {
+            const parts = pathname.split("/");
+            response = getDailyHandler(parts[3]!, parts[4]!);
+        } else if (pathname.match(/^\/api\/daily\/[^/]+\/[^/]+\/task$/) && method === "POST") {
+            const parts = pathname.split("/");
+            response = await addTaskHandler(request, parts[3]!, parts[4]!);
+        } else if (pathname.match(/^\/api\/daily\/[^/]+\/[^/]+\/task\/\d+$/) && method === "PUT") {
+            const parts = pathname.split("/");
+            const taskId = parseInt(parts[6]!, 10);
+            response = await completeTaskHandler(parts[3]!, parts[4]!, taskId);
+        } else if (
+            pathname.match(/^\/api\/daily\/[^/]+\/[^/]+\/task\/\d+$/) &&
+            method === "DELETE"
+        ) {
+            // Uncomplete task (undo)
+            const parts = pathname.split("/");
+            const taskId = parseInt(parts[6]!, 10);
+            response = await uncompleteTaskHandler(parts[3]!, parts[4]!, taskId);
+        } else if (
+            pathname.match(/^\/api\/daily\/[^/]+\/[^/]+\/task\/\d+$/) &&
+            method === "PATCH"
+        ) {
+            // Update task text
+            const parts = pathname.split("/");
+            const taskId = parseInt(parts[6]!, 10);
+            response = await updateTaskHandler(request, parts[3]!, parts[4]!, taskId);
+        } else if (
+            pathname.match(/^\/api\/daily\/[^/]+\/[^/]+\/task\/\d+\/child$/) &&
+            method === "POST"
+        ) {
+            const parts = pathname.split("/");
+            const parentId = parseInt(parts[6]!, 10);
+            response = await addChildTaskHandler(request, parts[3]!, parts[4]!, parentId);
+        } else if (pathname.match(/^\/api\/daily\/[^/]+\/[^/]+\/memo$/) && method === "POST") {
+            const parts = pathname.split("/");
+            response = await addMemoHandler(request, parts[3]!, parts[4]!);
+        } else if (pathname.match(/^\/api\/daily\/[^/]+\/[^/]+\/memo$/) && method === "PUT") {
+            const parts = pathname.split("/");
+            response = await updateMemoHandler(request, parts[3]!, parts[4]!);
+        } else if (pathname.match(/^\/api\/daily\/[^/]+\/[^/]+\/summary$/) && method === "POST") {
+            // Generate summary by LLM
+            const parts = pathname.split("/");
+            response = await generateSummaryHandler(parts[3]!, parts[4]!);
+        } else if (pathname.match(/^\/api\/daily\/[^/]+\/[^/]+\/log$/) && method === "POST") {
+            // Generate log by LLM
+            const parts = pathname.split("/");
+            response = await generateLogHandler(parts[3]!, parts[4]!);
         } else {
             response = Response.json({ error: "Not Found" }, { status: 404 });
         }
