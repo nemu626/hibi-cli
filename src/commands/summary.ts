@@ -1,9 +1,9 @@
+import colors from "colors";
 import { Command } from "commander";
 import prompts from "prompts";
-import colors from "colors";
 import { loadConfig } from "../lib/config";
-import { generateSummary } from "../lib/llm/client";
 import { getSectionContent, readDailyFile, updateSection } from "../lib/daily";
+import { generateSummary } from "../lib/llm/client";
 import { getTodayString } from "../lib/utils";
 
 export function createSummaryCommand() {
@@ -19,7 +19,11 @@ export function createSummaryCommand() {
 
             // LLM設定チェック
             if (!config.llm || !config.llm.provider || config.llm.provider === "none") {
-                console.error(colors.red("❌ LLMプロバイダーが設定されていません。hibi.yamlで設定してください。"));
+                console.error(
+                    colors.red(
+                        "❌ LLMプロバイダーが設定されていません。hibi.yamlで設定してください。",
+                    ),
+                );
                 process.exit(1);
             }
 
@@ -27,7 +31,11 @@ export function createSummaryCommand() {
 
             // projectRootがない場合は、おそらくhibiプロジェクト外で実行されている
             if (!projectRoot) {
-                console.error(colors.red("❌ hibiプロジェクトが見つかりません。hibi initを実行したディレクトリで実行してください。"));
+                console.error(
+                    colors.red(
+                        "❌ hibiプロジェクトが見つかりません。hibi initを実行したディレクトリで実行してください。",
+                    ),
+                );
                 process.exit(1);
             }
 
@@ -45,7 +53,9 @@ export function createSummaryCommand() {
             const memoContent = getSectionContent(content, "Memo");
 
             if (!todoContent && !memoContent) {
-                console.error(colors.yellow("⚠️ TodoもMemoも詳細がありません。要約する内容がありません。"));
+                console.error(
+                    colors.yellow("⚠️ TodoもMemoも詳細がありません。要約する内容がありません。"),
+                );
                 process.exit(0);
             }
 
@@ -76,10 +86,10 @@ ${memoContent}
 
             if (!options.yes) {
                 const response = await prompts({
-                    type: 'confirm',
-                    name: 'value',
-                    message: 'LLMを使用してサマリを生成しますか？',
-                    initial: true
+                    type: "confirm",
+                    name: "value",
+                    message: "LLMを使用してサマリを生成しますか？",
+                    initial: true,
                 });
 
                 if (!response.value) {
@@ -109,10 +119,11 @@ ${memoContent}
                     if (result.usage) {
                         const usage = result.usage as any;
                         console.log(colors.cyan("--- Token Usage ---"));
-                        console.log(`Prompt: ${usage.promptTokens}, Completion: ${usage.completionTokens}, Total: ${usage.totalTokens}`);
+                        console.log(
+                            `Prompt: ${usage.promptTokens}, Completion: ${usage.completionTokens}, Total: ${usage.totalTokens}`,
+                        );
                     }
                 }
-
             } catch (error) {
                 console.error(colors.red("❌ エラーが発生しました:"));
                 console.error(error);

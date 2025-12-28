@@ -1,8 +1,8 @@
-import { expect, test, describe, beforeAll, afterAll } from "bun:test";
-import { getZshHistory } from "../../lib/history";
+import { afterAll, beforeAll, describe, expect, test } from "bun:test";
 import fs from "node:fs/promises";
-import path from "node:path";
 import os from "node:os";
+import path from "node:path";
+import { getZshHistory } from "../../lib/history";
 
 describe("getZshHistory", () => {
     const tmpDir = os.tmpdir();
@@ -23,7 +23,7 @@ describe("getZshHistory", () => {
     });
 
     afterAll(async () => {
-        await fs.unlink(historyFile).catch(() => { });
+        await fs.unlink(historyFile).catch(() => {});
     });
 
     test("should return entries after since date", async () => {
