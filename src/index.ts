@@ -7,19 +7,20 @@
  */
 
 import { Command } from "commander";
+import { createConfigCommand } from "./commands/config";
 import { createDoneCommand } from "./commands/done";
 import { createEditCommand } from "./commands/edit";
 // コマンドのインポート
 import { createInitCommand } from "./commands/init";
 import { createListCommand } from "./commands/list";
+import { createLogCommand } from "./commands/log";
 import { createMemoCommand } from "./commands/memo";
 import { createProjectCommand } from "./commands/project";
 import { createRemoteCommand } from "./commands/remote";
+import { createSummaryCommand } from "./commands/summary";
 import { createSyncCommand } from "./commands/sync";
 import { createTodoCommand } from "./commands/todo";
 import { createViewCommand } from "./commands/view";
-import { createSummaryCommand } from "./commands/summary";
-import { createLogCommand } from "./commands/log";
 import { setupCompletion } from "./lib/completion";
 
 // Shell Completionのセットアップ（--completion, --completion-install の処理）
@@ -48,6 +49,7 @@ program.addCommand(createRemoteCommand());
 program.addCommand(createViewCommand());
 program.addCommand(createSummaryCommand());
 program.addCommand(createLogCommand());
+program.addCommand(createConfigCommand());
 
 // パースして実行
 program.parse(process.argv);
