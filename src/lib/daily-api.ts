@@ -21,6 +21,8 @@ import {
     updateTaskById,
     writeDailyFile,
 } from "./daily";
+import { getCurrentUserEmail, getGitCommits } from "./git";
+import { getZshHistory } from "./history";
 import { generateLLMText } from "./llm/client";
 import { findProjectRoot, getDailyDir, getTodayString } from "./utils";
 
@@ -436,5 +438,58 @@ ${memoContent}
     } catch (error) {
         console.error("Log generation error:", error);
         return Response.json({ error: "ログの生成に失敗しました" }, { status: 500 });
+    }
+}
+
+/**
+ * GET /api/daily/:project/:date/log-sources - ログソースデータを取得
+ */
+export async function getLogSourcesHandler(
+    projectName: string,
+    dateStr: string,
+): Promise<Response> {
+    const projectRoot = findProjectRoot();
+    if (!projectRoot) {
+        return Response.json({ error: "hibiプロジェクトが見つかりません" }, { status: 404 });
+    }
+
+    try {
+        const config = loadConfig();
+
+        // 日付をパース (YYYYMMDD形式)
+        const year = parseInt(dateStr.slice(0, 4), 10);
+        const month = parseInt(dateStr.slice(4, 6), 10) - 1;
+        const day = parseInt(dateStr.slice(6, 8), 10);
+        const since = new Date(year, month, day, 0, 0, 0);
+
+        // Shell History (デフォルトのzsh historyパス)
+        let shellHistory: { timestamp: string; command: string }[] = [];
+        const historyPath = "~/.zsh_history";
+        try {
+            const history = await getZshHistory(historyPath, since);
+            shellHistory = history.map((h) => ({
+                timestamp: h.timestamp.toLocaleTimeString("ja-JP"),
+                command: h.command,
+            }));
+        } catch (e) {
+            console.error("Failed to get shell history:", e);
+        }
+
+        // Git Commits (すべてのコミットを取得、著者フィルタなし)
+        let gitCommits: string[] = [];
+        try {
+            gitCommits = await getGitCommits(projectRoot, since);
+            console.log(`Log sources: date=${dateStr}, since=${since.toISOString()}, commits=${gitCommits.length}`);
+        } catch (e) {
+            console.error("Failed to get git commits:", e);
+        }
+
+        return Response.json({
+            shellHistory,
+            gitCommits,
+        });
+    } catch (error) {
+        console.error("Log sources error:", error);
+        return Response.json({ error: "ログソースの取得に失敗しました" }, { status: 500 });
     }
 }

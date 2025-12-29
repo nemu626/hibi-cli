@@ -19,6 +19,7 @@ import {
     generateLogHandler,
     generateSummaryHandler,
     getDailyHandler,
+    getLogSourcesHandler,
     getProjectDatesHandler,
     getProjectsHandler,
     getTodayHandler,
@@ -160,6 +161,10 @@ async function handleRequest(request: Request): Promise<Response> {
             // Generate log by LLM
             const parts = pathname.split("/");
             response = await generateLogHandler(parts[3]!, parts[4]!);
+        } else if (pathname.match(/^\/api\/daily\/[^/]+\/[^/]+\/log-sources$/) && method === "GET") {
+            // Get log source data (shell history, git commits)
+            const parts = pathname.split("/");
+            response = await getLogSourcesHandler(parts[3]!, parts[4]!);
         } else {
             response = Response.json({ error: "Not Found" }, { status: 404 });
         }

@@ -286,6 +286,44 @@
         confirmRegenerate = null;
     }
 
+    // Log sources (shell history, git commits)
+    interface LogSources {
+        shellHistory: { timestamp: string; command: string }[];
+        gitCommits: string[];
+    }
+    let logSources = $state<LogSources | null>(null);
+    let logSourcesExpanded = $state(false);
+    let loadingLogSources = $state(false);
+
+    async function toggleLogSources() {
+        if (logSourcesExpanded) {
+            logSourcesExpanded = false;
+            return;
+        }
+
+        if (logSources) {
+            logSourcesExpanded = true;
+            return;
+        }
+
+        loadingLogSources = true;
+        try {
+            const res = await fetch(
+                `/api/daily/${encodeURIComponent(selectedProject)}/${selectedDate}/log-sources`,
+            );
+            if (res.ok) {
+                logSources = await res.json();
+                logSourcesExpanded = true;
+            } else {
+                onNotify("ソースデータの取得に失敗しました", "error");
+            }
+        } catch (error) {
+            onNotify("ソースデータの取得に失敗しました", "error");
+        } finally {
+            loadingLogSources = false;
+        }
+    }
+
     function formatDateDisplay(dateStr: string): string {
         if (dateStr.length !== 8) return dateStr;
         return `${dateStr.slice(0, 4)}-${dateStr.slice(4, 6)}-${dateStr.slice(6, 8)}`;
@@ -432,6 +470,75 @@
                             >
                         {/if}
                     </div>
+
+                    <!-- Source Data Toggle -->
+                    <button
+                        class="btn-source-toggle"
+                        onclick={toggleLogSources}
+                    >
+                        {#if loadingLogSources}
+                            📊 読み込み中...
+                        {:else if logSourcesExpanded}
+                            📊 ソースを閉じる ▲
+                        {:else}
+                            📊 ソースを見る ▼
+                        {/if}
+                    </button>
+
+                    {#if logSourcesExpanded && logSources}
+                        <div class="source-data-panel">
+                            <div class="source-section">
+                                <h4>
+                                    🖥️ Shell History ({logSources.shellHistory
+                                        .length}件)
+                                </h4>
+                                <div class="source-content">
+                                    {#if logSources.shellHistory.length > 0}
+                                        <ul class="history-list">
+                                            {#each logSources.shellHistory.slice(0, 50) as item}
+                                                <li>
+                                                    <span class="timestamp"
+                                                        >{item.timestamp}</span
+                                                    >
+                                                    <code>{item.command}</code>
+                                                </li>
+                                            {/each}
+                                        </ul>
+                                        {#if logSources.shellHistory.length > 50}
+                                            <p class="more-items">
+                                                ...他 {logSources.shellHistory
+                                                    .length - 50}件
+                                            </p>
+                                        {/if}
+                                    {:else}
+                                        <p class="no-data-msg">
+                                            履歴がありません
+                                        </p>
+                                    {/if}
+                                </div>
+                            </div>
+
+                            <div class="source-section">
+                                <h4>
+                                    📦 Git Commits ({logSources.gitCommits
+                                        .length}件)
+                                </h4>
+                                <div class="source-content">
+                                    {#if logSources.gitCommits.length > 0}
+                                        <ul class="commit-list">
+                                            {#each logSources.gitCommits as commit}
+                                                <li><code>{commit}</code></li>
+                                            {/each}
+                                        </ul>
+                                    {:else}
+                                        <p class="no-data-msg">
+                                            コミットがありません
+                                        </p>
+                                    {/if}
+                                </div>
+                            </div>
+                        </div>
+                    {/if}
                 </section>
             </div>
         {:else}
@@ -623,5 +730,90 @@
         color: var(--text-secondary);
         opacity: 0.6;
         font-style: italic;
+    }
+
+    .btn-source-toggle {
+        margin-top: 1rem;
+        padding: 0.5rem 1rem;
+        background: rgba(255, 255, 255, 0.05);
+        border: 1px solid var(--glass-border);
+        border-radius: 6px;
+        color: var(--text-secondary);
+        font-size: 0.75rem;
+        cursor: pointer;
+        transition: all 0.2s;
+        width: 100%;
+    }
+
+    .btn-source-toggle:hover {
+        background: rgba(255, 255, 255, 0.1);
+        color: var(--text-primary);
+    }
+
+    .source-data-panel {
+        margin-top: 1rem;
+        padding: 1rem;
+        background: rgba(0, 0, 0, 0.2);
+        border-radius: 8px;
+        border: 1px solid var(--glass-border);
+        display: flex;
+        flex-direction: column;
+        gap: 1rem;
+        max-height: 400px;
+        overflow-y: auto;
+    }
+
+    .source-section h4 {
+        font-size: 0.8rem;
+        color: var(--text-primary);
+        margin: 0 0 0.5rem;
+    }
+
+    .source-content {
+        font-size: 0.75rem;
+        color: var(--text-secondary);
+    }
+
+    .history-list,
+    .commit-list {
+        list-style: none;
+        padding: 0;
+        margin: 0;
+        display: flex;
+        flex-direction: column;
+        gap: 0.25rem;
+    }
+
+    .history-list li {
+        display: flex;
+        gap: 0.5rem;
+        align-items: baseline;
+    }
+
+    .history-list .timestamp {
+        color: var(--primary);
+        font-size: 0.65rem;
+        min-width: 60px;
+    }
+
+    .history-list code,
+    .commit-list code {
+        font-family: "SF Mono", "Monaco", "Menlo", monospace;
+        word-break: break-all;
+        font-size: 0.7rem;
+    }
+
+    .no-data-msg {
+        color: var(--text-secondary);
+        opacity: 0.6;
+        font-style: italic;
+        margin: 0;
+    }
+
+    .more-items {
+        color: var(--text-secondary);
+        opacity: 0.6;
+        font-size: 0.7rem;
+        margin: 0.5rem 0 0;
     }
 </style>
