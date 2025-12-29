@@ -4,9 +4,11 @@
 
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
-import { parse, stringify } from "yaml";
+import { createRequire } from "node:module";
 import type { GlobalConfig, HibiConfig, ProjectConfig } from "../types";
 import { findProjectRoot, getGlobalConfigDir, getGlobalConfigPath } from "./utils";
+
+const require = createRequire(import.meta.url);
 
 /**
  * デフォルトのグローバル設定
@@ -39,6 +41,7 @@ export function loadGlobalConfig(): GlobalConfig {
 
     try {
         const content = readFileSync(configPath, "utf-8");
+        const { parse } = require("yaml");
         const config = parse(content) as GlobalConfig;
         return { ...DEFAULT_GLOBAL_CONFIG, ...config };
     } catch (_error) {
@@ -59,6 +62,7 @@ export function loadProjectConfig(projectRoot: string): ProjectConfig {
 
     try {
         const content = readFileSync(configPath, "utf-8");
+        const { parse } = require("yaml");
         const config = parse(content) as ProjectConfig;
         return { ...DEFAULT_PROJECT_CONFIG, ...config };
     } catch (_error) {
@@ -104,6 +108,7 @@ export function saveGlobalConfig(config: GlobalConfig): void {
         mkdirSync(configDir, { recursive: true });
     }
 
+    const { stringify } = require("yaml");
     const content = stringify(config);
     writeFileSync(configPath, content, "utf-8");
 }
@@ -113,6 +118,7 @@ export function saveGlobalConfig(config: GlobalConfig): void {
  */
 export function saveProjectConfig(projectRoot: string, config: ProjectConfig): void {
     const configPath = join(projectRoot, "hibi.yaml");
+    const { stringify } = require("yaml");
     const content = stringify(config);
     writeFileSync(configPath, content, "utf-8");
 }
