@@ -161,8 +161,6 @@ export async function getRemoteUrl(cwd: string, remote: string = "origin"): Prom
     return result.success ? result.output : null;
 }
 
-
-
 /**
  * 現在のユーザーEmailを取得
  */
@@ -189,5 +187,5 @@ export async function getGitCommits(cwd: string, since: Date, author?: string): 
     const result = await runGitCommand(args, cwd);
     if (!result.success) return [];
 
-    return result.output.split('\n').filter(line => line.length > 0);
+    return result.output.split("\n").filter((line) => line.length > 0);
 }
