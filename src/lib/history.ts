@@ -11,8 +11,6 @@ export interface ShellHistoryEntry {
  */
 export async function getZshHistory(historyPath: string, since: Date): Promise<ShellHistoryEntry[]> {
     const expandedPath = historyPath.replace(/^~/, os.homedir());
-
-    try {
         // ファイルの存在確認
         try {
             await fs.access(expandedPath);
@@ -33,7 +31,7 @@ export async function getZshHistory(historyPath: string, since: Date): Promise<S
             // zsh history format: : 1673330000:0;command
             // 先頭の : をマッチ、タイムスタンプをキャプチャ、コマンド部分をキャプチャ
             const match = line.match(/^: (\d+):\d+;(.*)$/);
-            if (match && match[1] && match[2] !== undefined) {
+            if (match?.[1] && match[2] !== undefined) {
                 const timestampSec = parseInt(match[1], 10);
                 const timestampMs = timestampSec * 1000;
 
@@ -47,9 +45,4 @@ export async function getZshHistory(historyPath: string, since: Date): Promise<S
         }
 
         return entries;
-    } catch (error) {
-        // 読み込みエラーなどは呼び出し元でハンドリングできるようにthrowする
-        // ただしENOENTは上でハンドリング済み
-        throw error;
-    }
 }
