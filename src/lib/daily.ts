@@ -410,10 +410,7 @@ export function addMemo(
 /**
  * 特定のセクションの内容を取得
  */
-export function getSectionContent(
-    content: string,
-    sectionName: string,
-): string {
+export function getSectionContent(content: string, sectionName: string): string {
     const lines = content.split("\n");
     const sectionLines: string[] = [];
     let inSection = false;
@@ -455,12 +452,12 @@ export function updateSection(
 
     for (let i = 0; i < lines.length; i++) {
         const line = lines[i];
-        if (line && line.match(new RegExp(`^##\\s+${sectionName}`, "i"))) {
+        if (line?.match(new RegExp(`^##\\s+${sectionName}`, "i"))) {
             startLine = i;
             // 次のセクションを探す
             for (let j = i + 1; j < lines.length; j++) {
                 const nextLine = lines[j];
-                if (nextLine && nextLine.match(/^##\s+/)) {
+                if (nextLine?.match(/^##\s+/)) {
                     endLine = j;
                     break;
                 }
