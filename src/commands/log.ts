@@ -1,5 +1,4 @@
 import { Command } from "commander";
-import prompts from "prompts";
 import colors from "colors";
 import path from "node:path";
 import os from "node:os";
@@ -160,6 +159,7 @@ ${gitHistoryStr || "(履歴なし)"}
             }
 
             if (!options.yes) {
+                const prompts = (await import("prompts")).default;
                 const response = await prompts({
                     type: 'confirm',
                     name: 'value',
