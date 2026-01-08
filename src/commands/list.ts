@@ -52,8 +52,16 @@ function listTasks(options: { all?: boolean; date?: string }): void {
     }
 
     // タスクを分類
-    const todoTasks = tasks.filter((t) => t.status === "todo");
-    const doneTasks = tasks.filter((t) => t.status === "done");
+    const todoTasks: Task[] = [];
+    const doneTasks: Task[] = [];
+
+    for (const task of tasks) {
+        if (task.status === "todo") {
+            todoTasks.push(task);
+        } else if (task.status === "done") {
+            doneTasks.push(task);
+        }
+    }
 
     // 未完了タスクを表示
     if (todoTasks.length > 0) {
