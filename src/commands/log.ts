@@ -1,10 +1,8 @@
 import { Command } from "commander";
-import prompts from "prompts";
 import colors from "colors";
 import path from "node:path";
 import os from "node:os";
 import { loadConfig } from "../lib/config";
-import { generateSummary } from "../lib/llm/client";
 import { updateSection } from "../lib/daily";
 import { getTodayString } from "../lib/utils";
 import { getZshHistory } from "../lib/history";
@@ -160,6 +158,7 @@ ${gitHistoryStr || "(履歴なし)"}
             }
 
             if (!options.yes) {
+                const prompts = (await import("prompts")).default;
                 const response = await prompts({
                     type: 'confirm',
                     name: 'value',
@@ -176,6 +175,7 @@ ${gitHistoryStr || "(履歴なし)"}
             console.log(colors.cyan("🤖 ログを生成中..."));
 
             try {
+                const { generateSummary } = await import("../lib/llm/client");
                 const result = await generateSummary(prompt, config.llm);
                 const logContent = result.text;
 
