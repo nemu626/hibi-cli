@@ -1,8 +1,6 @@
 import { Command } from "commander";
-import prompts from "prompts";
 import colors from "colors";
 import { loadConfig } from "../lib/config";
-import { generateSummary } from "../lib/llm/client";
 import { getSectionContent, readDailyFile, updateSection } from "../lib/daily";
 import { getTodayString } from "../lib/utils";
 
@@ -75,6 +73,7 @@ ${memoContent}
             }
 
             if (!options.yes) {
+                const prompts = (await import("prompts")).default;
                 const response = await prompts({
                     type: 'confirm',
                     name: 'value',
@@ -91,6 +90,7 @@ ${memoContent}
             console.log(colors.cyan("🤖 サマリを生成中..."));
 
             try {
+                const { generateSummary } = await import("../lib/llm/client");
                 const result = await generateSummary(prompt, config.llm);
                 const summary = result.text;
 
