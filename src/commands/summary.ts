@@ -1,5 +1,4 @@
 import { Command } from "commander";
-import prompts from "prompts";
 import colors from "colors";
 import { loadConfig } from "../lib/config";
 import { generateSummary } from "../lib/llm/client";
@@ -75,6 +74,7 @@ ${memoContent}
             }
 
             if (!options.yes) {
+                const prompts = (await import("prompts")).default;
                 const response = await prompts({
                     type: 'confirm',
                     name: 'value',
@@ -107,6 +107,7 @@ ${memoContent}
                     console.log(colors.cyan("--- Full Output ---"));
                     console.log(summary);
                     if (result.usage) {
+                        // biome-ignore lint/suspicious/noExplicitAny: Pre-existing
                         const usage = result.usage as any;
                         console.log(colors.cyan("--- Token Usage ---"));
                         console.log(`Prompt: ${usage.promptTokens}, Completion: ${usage.completionTokens}, Total: ${usage.totalTokens}`);
