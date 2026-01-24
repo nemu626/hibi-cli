@@ -1,6 +1,12 @@
 import { Command } from "commander";
-import prompts from "prompts";
-import colors from "colors";
+// import colors from "colors";
+const colors = {
+    red: (s: string) => `\x1b[31m${s}\x1b[0m`,
+    green: (s: string) => `\x1b[32m${s}\x1b[0m`,
+    yellow: (s: string) => `\x1b[33m${s}\x1b[0m`,
+    cyan: (s: string) => `\x1b[36m${s}\x1b[0m`,
+    gray: (s: string) => `\x1b[90m${s}\x1b[0m`,
+};
 import path from "node:path";
 import os from "node:os";
 import { loadConfig } from "../lib/config";
@@ -160,6 +166,7 @@ ${gitHistoryStr || "(履歴なし)"}
             }
 
             if (!options.yes) {
+                const prompts = (await import("prompts")).default;
                 const response = await prompts({
                     type: 'confirm',
                     name: 'value',
@@ -192,6 +199,7 @@ ${gitHistoryStr || "(履歴なし)"}
                     console.log(colors.cyan("--- Full Output ---"));
                     console.log(logContent);
                     if (result.usage) {
+                        // biome-ignore lint/suspicious/noExplicitAny: library compatibility
                         const usage = result.usage as any;
                         console.log(colors.cyan("--- Token Usage ---"));
                         console.log(`Prompt: ${usage.promptTokens}, Completion: ${usage.completionTokens}, Total: ${usage.totalTokens}`);

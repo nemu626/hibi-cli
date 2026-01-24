@@ -1,0 +1,3 @@
+## 2026-01-24 - CLI Startup Bottleneck due to Heavy Top-Level Imports
+**Learning:** This CLI project imports all command modules in `index.ts` immediately. If any command module (`src/commands/*.ts`) or its dependencies (`src/lib/*.ts`) has top-level imports of heavy libraries (like AI SDKs or `prompts`), it significantly slows down the startup time (measured ~5s vs ~0.5s) and can cause crashes even for unrelated commands (e.g., `hibi --version`).
+**Action:** When adding new commands or features, always use dynamic `import()` or lazy-loading for heavy dependencies. Ensure utility functions (like `src/lib/llm/client.ts`) do not import heavy libs at the top level if they are used by multiple commands or imported early.
