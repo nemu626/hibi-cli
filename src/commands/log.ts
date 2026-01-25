@@ -1,6 +1,4 @@
 import { Command } from "commander";
-import prompts from "prompts";
-import colors from "colors";
 import path from "node:path";
 import os from "node:os";
 import { loadConfig } from "../lib/config";
@@ -21,6 +19,10 @@ export function createLogCommand() {
         .option("--git-only", "Git履歴のみ使用", false)
         .option("-v, --verbose", "詳細情報を表示 (プロンプト、出力、トークン数)", false)
         .action(async (options) => {
+            const prompts = (await import("prompts")).default;
+            // @ts-expect-error: colors library import
+            const colors = (await import("colors")).default;
+
             const config = loadConfig();
 
             // LLM設定チェック
@@ -39,24 +41,9 @@ export function createLogCommand() {
             const dateStr = options.date;
 
             // 時間範囲の計算
-            // 指定日の0時0分からにするか、現在時刻から遡るか。
-            // 日報の文脈では、その日の作業ログが欲しいので、指定日の00:00:00から23:59:59までが適切かもしれないが、
-            // 昨日の深夜作業も含める場合がある。
-            // ここでは簡易的に、現在時刻から --hours で指定された時間遡る、またはオプション指定がなければ
-            // コマンド実行時の日付の0時から現在までとするのが自然。
-            // しかし --hours "24" がデフォルトなので、単純に現在時刻 - N時間 とする。
-
-            // もし日付指定(dateStr)が今日以外の場合、その日の00:00 - 23:59 を対象にすべき。
-            // 実装簡略化のため、今回は「現在時刻から遡る」アプローチを採用しつつ、
-            // dateStrが今日でない場合は警告を出すか、その日の始点終点を計算するか。
-            // ユーザーは「logコマンド」をその日の終わりに叩くことを想定している。
-
             const hours = parseInt(options.hours, 10);
             const sinceDate = new Date();
             sinceDate.setHours(sinceDate.getHours() - hours);
-
-            // TODO: -d オプションが指定された場合、その日の全範囲を取得するようにロジックを変えるべきだが
-            // 今回は直近N時間の履歴という仕様で進める。
 
             let shellHistoryStr = "";
             let gitHistoryStr = "";
@@ -192,6 +179,7 @@ ${gitHistoryStr || "(履歴なし)"}
                     console.log(colors.cyan("--- Full Output ---"));
                     console.log(logContent);
                     if (result.usage) {
+                        // biome-ignore lint/suspicious/noExplicitAny: AI SDK usage type
                         const usage = result.usage as any;
                         console.log(colors.cyan("--- Token Usage ---"));
                         console.log(`Prompt: ${usage.promptTokens}, Completion: ${usage.completionTokens}, Total: ${usage.totalTokens}`);

@@ -4,23 +4,31 @@
  */
 
 import { Command } from "commander";
-import { marked } from "marked";
-import { markedTerminal } from "marked-terminal";
 import { loadConfig, requireProjectRoot } from "../lib/config";
 import { ensureDailyFile, readDailyFile } from "../lib/daily";
 import { getTodayString } from "../lib/utils";
 
-// marked-terminalを拡張として登録
-marked.use(markedTerminal());
+let markedInstance: typeof import("marked").marked | undefined;
+
+async function getMarked() {
+    if (markedInstance) return markedInstance;
+
+    const { marked } = await import("marked");
+    const { markedTerminal } = await import("marked-terminal");
+    marked.use(markedTerminal());
+    markedInstance = marked;
+    return marked;
+}
 
 /**
  * Markdownをシンタックスハイライトして出力
  * TTY（ターミナル直接）の場合は色付け、パイプの場合はプレーンテキスト
  */
-function printMarkdown(content: string): void {
+async function printMarkdown(content: string): Promise<void> {
     if (process.stdout.isTTY) {
+        const marked = await getMarked();
         // marked.parseはPromise<string>を返すが、同期的に動作する設定なのでawaitなしで使用
-        const rendered = marked.parse(content) as string;
+        const rendered = await marked.parse(content);
         // 末尾の余分な改行を削除
         process.stdout.write(`${rendered.trimEnd()}\n`);
     } else {
@@ -38,8 +46,8 @@ export function createViewCommand(): Command {
         .option("-d, --date <date>", "指定した日付の日報を表示 (YYYYMMDD)")
         .option("-t, --todo", "Todoセクションのみを表示")
         .option("-m, --memo", "Memoセクションのみを表示")
-        .action((options: { date?: string; todo?: boolean; memo?: boolean }) => {
-            viewDaily(options);
+        .action(async (options: { date?: string; todo?: boolean; memo?: boolean }) => {
+            await viewDaily(options);
         });
 
     return command;
@@ -48,7 +56,7 @@ export function createViewCommand(): Command {
 /**
  * 日報を表示
  */
-function viewDaily(options: { date?: string; todo?: boolean; memo?: boolean }): void {
+async function viewDaily(options: { date?: string; todo?: boolean; memo?: boolean }): Promise<void> {
     const projectRoot = requireProjectRoot();
     const config = loadConfig();
     const projectName = config.currentProject || "default";
@@ -69,7 +77,7 @@ function viewDaily(options: { date?: string; todo?: boolean; memo?: boolean }): 
         // Todoセクションのみを表示
         const todoSection = extractSection(content, "Todo");
         if (todoSection) {
-            printMarkdown(todoSection);
+            await printMarkdown(todoSection);
         } else {
             console.log("Todoセクションが見つかりません");
         }
@@ -77,13 +85,13 @@ function viewDaily(options: { date?: string; todo?: boolean; memo?: boolean }): 
         // Memoセクションのみを表示
         const memoSection = extractSection(content, "Memo");
         if (memoSection) {
-            printMarkdown(memoSection);
+            await printMarkdown(memoSection);
         } else {
             console.log("Memoセクションが見つかりません");
         }
     } else {
         // 全体を表示
-        printMarkdown(content);
+        await printMarkdown(content);
     }
 }
 
