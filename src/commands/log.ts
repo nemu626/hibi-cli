@@ -1,6 +1,4 @@
 import { Command } from "commander";
-import prompts from "prompts";
-import colors from "colors";
 import path from "node:path";
 import os from "node:os";
 import { loadConfig } from "../lib/config";
@@ -21,6 +19,10 @@ export function createLogCommand() {
         .option("--git-only", "Git履歴のみ使用", false)
         .option("-v, --verbose", "詳細情報を表示 (プロンプト、出力、トークン数)", false)
         .action(async (options) => {
+            // Lazy load dependencies
+            const { default: colors } = await import("colors");
+            const { default: prompts } = await import("prompts");
+
             const config = loadConfig();
 
             // LLM設定チェック
@@ -192,6 +194,7 @@ ${gitHistoryStr || "(履歴なし)"}
                     console.log(colors.cyan("--- Full Output ---"));
                     console.log(logContent);
                     if (result.usage) {
+                        // biome-ignore lint/suspicious/noExplicitAny: usage type mismatch
                         const usage = result.usage as any;
                         console.log(colors.cyan("--- Token Usage ---"));
                         console.log(`Prompt: ${usage.promptTokens}, Completion: ${usage.completionTokens}, Total: ${usage.totalTokens}`);
