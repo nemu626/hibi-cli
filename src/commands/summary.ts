@@ -1,6 +1,4 @@
 import { Command } from "commander";
-import prompts from "prompts";
-import colors from "colors";
 import { loadConfig } from "../lib/config";
 import { generateSummary } from "../lib/llm/client";
 import { getSectionContent, readDailyFile, updateSection } from "../lib/daily";
@@ -15,6 +13,10 @@ export function createSummaryCommand() {
         .option("--dry-run", "LLMには送信せず、プロンプトを表示", false)
         .option("-v, --verbose", "詳細情報を表示 (プロンプト、出力、トークン数)", false)
         .action(async (options) => {
+            // Lazy load prompts and colors to improve CLI startup time
+            const { default: colors } = await import("colors");
+            const { default: prompts } = await import("prompts");
+
             const config = loadConfig();
 
             // LLM設定チェック
