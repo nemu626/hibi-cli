@@ -4,7 +4,7 @@
  */
 
 import { Command } from "commander";
-import { loadConfig, requireProjectRoot } from "../lib/config";
+import { requireProjectRoot } from "../lib/config";
 import { addRemote, hasRemote, isGitRepo } from "../lib/git";
 
 /**

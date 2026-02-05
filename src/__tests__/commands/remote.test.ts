@@ -4,9 +4,7 @@
 
 import { afterEach, beforeEach, describe, expect, it } from "bun:test";
 import { spawnSync } from "node:child_process";
-import { join } from "node:path";
 import {
-    initGitRepo,
     initProjectWithCommand,
     runHibi,
     setupTestEnv,
