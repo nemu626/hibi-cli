@@ -1,0 +1,3 @@
+## 2024-05-23 - Lazy Loading Heavy Dependencies
+**Learning:** Top-level imports in TypeScript/Bun can significantly slow down CLI startup time, especially when importing heavy SDKs like `ai`, `@ai-sdk/openai`, or `marked`. In `hibi`, `src/index.ts` imports all commands, and if those command files have top-level imports of heavy libraries, the entire CLI pays the startup cost even for simple commands like `--version` or `todo`.
+**Action:** Use dynamic `import()` inside command action handlers or specific functions for heavy dependencies. For `marked`, ensure extensions are registered only when needed. This reduced startup time from ~5.5s to ~0.12s.
