@@ -1,5 +1,5 @@
-import fs from 'node:fs/promises';
-import os from 'node:os';
+import fs from "node:fs/promises";
+import os from "node:os";
 
 export interface ShellHistoryEntry {
     timestamp: Date;
@@ -9,7 +9,10 @@ export interface ShellHistoryEntry {
 /**
  * zsh履歴ファイルから指定日時以降の履歴を取得
  */
-export async function getZshHistory(historyPath: string, since: Date): Promise<ShellHistoryEntry[]> {
+export async function getZshHistory(
+    historyPath: string,
+    since: Date,
+): Promise<ShellHistoryEntry[]> {
     const expandedPath = historyPath.replace(/^~/, os.homedir());
 
     try {
@@ -24,8 +27,8 @@ export async function getZshHistory(historyPath: string, since: Date): Promise<S
         // utf-8で読み込めない場合を考慮して、bufferとして読み込んでからデコードを試みることもできるが、
         // 一般的なユースケースとしてutf-8を仮定する。
         // zshのEXTENDED_HISTORYオプションが有効であることを前提とする。
-        const content = await fs.readFile(expandedPath, 'utf-8');
-        const lines = content.split('\n');
+        const content = await fs.readFile(expandedPath, "utf-8");
+        const lines = content.split("\n");
         const entries: ShellHistoryEntry[] = [];
         const sinceTime = since.getTime();
 
@@ -40,7 +43,7 @@ export async function getZshHistory(historyPath: string, since: Date): Promise<S
                 if (timestampMs >= sinceTime) {
                     entries.push({
                         timestamp: new Date(timestampMs),
-                        command: match[2].trim()
+                        command: match[2].trim(),
                     });
                 }
             }

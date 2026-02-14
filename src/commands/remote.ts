@@ -11,9 +11,7 @@ import { addRemote, hasRemote, isGitRepo } from "../lib/git";
  * remoteコマンドを作成
  */
 export function createRemoteCommand(): Command {
-    const command = new Command("remote")
-        .description("リモートリポジトリを管理")
-        .alias("r");
+    const command = new Command("remote").description("リモートリポジトリを管理").alias("r");
 
     // remote add サブコマンド
     command
@@ -46,7 +44,9 @@ async function addRemoteAction(url: string, name: string): Promise<void> {
     const remoteExists = await hasRemote(projectRoot, name);
     if (remoteExists) {
         console.error(`エラー: リモート '${name}' は既に設定されています`);
-        console.error(`ヒント: 既存のリモートを変更する場合は 'git remote set-url ${name} <url>' を使用してください`);
+        console.error(
+            `ヒント: 既存のリモートを変更する場合は 'git remote set-url ${name} <url>' を使用してください`,
+        );
         process.exit(1);
     }
 

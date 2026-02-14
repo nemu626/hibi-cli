@@ -43,7 +43,10 @@ describe("remote command", () => {
     it("正常: remote add <url> <name> で名前付きリモートを追加", () => {
         initProjectWithCommand(testDir);
 
-        const result = runHibi(["remote", "add", "https://github.com/user/repo.git", "upstream"], testDir);
+        const result = runHibi(
+            ["remote", "add", "https://github.com/user/repo.git", "upstream"],
+            testDir,
+        );
 
         expect(result.exitCode).toBe(0);
         expect(result.stdout).toContain("リモート 'upstream' を追加しました");
