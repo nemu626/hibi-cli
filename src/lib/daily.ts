@@ -410,10 +410,7 @@ export function addMemo(
 /**
  * 特定のセクションの内容を取得
  */
-export function getSectionContent(
-    content: string,
-    sectionName: string,
-): string {
+export function getSectionContent(content: string, sectionName: string): string {
     const lines = content.split("\n");
     const sectionLines: string[] = [];
     let inSection = false;

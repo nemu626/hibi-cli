@@ -1,14 +1,13 @@
-import { Command } from "commander";
-import prompts from "prompts";
-import colors from "colors";
-import path from "node:path";
 import os from "node:os";
+import path from "node:path";
+import colors from "colors";
+import { Command } from "commander";
 import { loadConfig } from "../lib/config";
-import { generateSummary } from "../lib/llm/client";
 import { updateSection } from "../lib/daily";
-import { getTodayString } from "../lib/utils";
+import { getCurrentUserEmail, getGitCommits } from "../lib/git";
 import { getZshHistory } from "../lib/history";
-import { getGitCommits, getCurrentUserEmail } from "../lib/git";
+import { generateSummary } from "../lib/llm/client";
+import { getTodayString } from "../lib/utils";
 
 export function createLogCommand() {
     return new Command("log")
@@ -25,13 +24,21 @@ export function createLogCommand() {
 
             // LLM設定チェック
             if (!config.llm || !config.llm.provider || config.llm.provider === "none") {
-                console.error(colors.red("❌ LLMプロバイダーが設定されていません。hibi.yamlで設定してください。"));
+                console.error(
+                    colors.red(
+                        "❌ LLMプロバイダーが設定されていません。hibi.yamlで設定してください。",
+                    ),
+                );
                 process.exit(1);
             }
 
             const projectRoot = config.projectRoot;
             if (!projectRoot) {
-                console.error(colors.red("❌ hibiプロジェクトが見つかりません。hibi initを実行したディレクトリで実行してください。"));
+                console.error(
+                    colors.red(
+                        "❌ hibiプロジェクトが見つかりません。hibi initを実行したディレクトリで実行してください。",
+                    ),
+                );
                 process.exit(1);
             }
 
@@ -68,15 +75,23 @@ export function createLogCommand() {
                 try {
                     const shellEntries = await getZshHistory(historyFile, sinceDate);
                     if (shellEntries.length > 0) {
-                        shellHistoryStr = shellEntries.map(e => {
-                            // タイムスタンプは省略、コマンドのみ
-                            return e.command;
-                        }).join("\n");
+                        shellHistoryStr = shellEntries
+                            .map((e) => {
+                                // タイムスタンプは省略、コマンドのみ
+                                return e.command;
+                            })
+                            .join("\n");
                     } else {
-                        console.log(colors.yellow("⚠️  対象期間のシェル履歴が見つかりませんでした。"));
+                        console.log(
+                            colors.yellow("⚠️  対象期間のシェル履歴が見つかりませんでした。"),
+                        );
                     }
                 } catch (e) {
-                    console.error(colors.red(`❌ シェル履歴の読み込みに失敗しました: ${(e as Error).message}`));
+                    console.error(
+                        colors.red(
+                            `❌ シェル履歴の読み込みに失敗しました: ${(e as Error).message}`,
+                        ),
+                    );
                 }
             }
 
@@ -103,15 +118,23 @@ export function createLogCommand() {
 
                     try {
                         const email = await getCurrentUserEmail(repoPath);
-                        const repoCommits = await getGitCommits(repoPath, sinceDate, email || undefined);
+                        const repoCommits = await getGitCommits(
+                            repoPath,
+                            sinceDate,
+                            email || undefined,
+                        );
 
                         if (repoCommits.length > 0) {
                             const repoName = path.basename(repoPath);
-                            commits.push(...repoCommits.map(c => `[${repoName}] ${c}`));
+                            commits.push(...repoCommits.map((c) => `[${repoName}] ${c}`));
                         }
                     } catch (e) {
                         if (options.verbose) {
-                            console.warn(colors.yellow(`⚠️  Git履歴取得失敗 (${repoPath}): ${(e as Error).message}`));
+                            console.warn(
+                                colors.yellow(
+                                    `⚠️  Git履歴取得失敗 (${repoPath}): ${(e as Error).message}`,
+                                ),
+                            );
                         }
                     }
                 }
@@ -160,11 +183,12 @@ ${gitHistoryStr || "(履歴なし)"}
             }
 
             if (!options.yes) {
+                const prompts = (await import("prompts")).default;
                 const response = await prompts({
-                    type: 'confirm',
-                    name: 'value',
-                    message: 'LLMを使用してログを生成しますか？',
-                    initial: true
+                    type: "confirm",
+                    name: "value",
+                    message: "LLMを使用してログを生成しますか？",
+                    initial: true,
                 });
 
                 if (!response.value) {
@@ -192,12 +216,14 @@ ${gitHistoryStr || "(履歴なし)"}
                     console.log(colors.cyan("--- Full Output ---"));
                     console.log(logContent);
                     if (result.usage) {
+                        // biome-ignore lint/suspicious/noExplicitAny: usage type is loose
                         const usage = result.usage as any;
                         console.log(colors.cyan("--- Token Usage ---"));
-                        console.log(`Prompt: ${usage.promptTokens}, Completion: ${usage.completionTokens}, Total: ${usage.totalTokens}`);
+                        console.log(
+                            `Prompt: ${usage.promptTokens}, Completion: ${usage.completionTokens}, Total: ${usage.totalTokens}`,
+                        );
                     }
                 }
-
             } catch (error) {
                 console.error(colors.red("❌ エラーが発生しました:"));
                 console.error(error);

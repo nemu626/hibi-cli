@@ -24,9 +24,14 @@ export function createInitCommand(): Command {
         .option("--clone <url>", "既存のGitリポジトリをクローンして初期化")
         .option("--no-git", "Gitリポジトリを初期化しない")
         .option("--add-remote <url>", "リモートリポジトリを追加 (origin)")
-        .action(async (directory: string, options: { clone?: string; git: boolean; addRemote?: string }) => {
-            await initProject(directory, options);
-        });
+        .action(
+            async (
+                directory: string,
+                options: { clone?: string; git: boolean; addRemote?: string },
+            ) => {
+                await initProject(directory, options);
+            },
+        );
 
     return command;
 }
