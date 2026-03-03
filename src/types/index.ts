@@ -3,7 +3,7 @@
  */
 
 // LLMプロバイダーの種類
-export type LLMProvider = "openai" | "ollama" | "gemini" | "none";
+export type LLMProvider = "openai" | "ollama" | "gemini" | "claude" | "none";
 
 // 同期モード
 export type SyncMode = "manual" | "auto" | "daily";
@@ -13,7 +13,14 @@ export interface LLMConfig {
     provider: LLMProvider;
     model?: string;
     apiKey?: string;
-    endpoint?: string;
+    endpoint?: string; // Ollamaカスタムエンドポイント用（将来実装予定）
+}
+
+// LLM使用統計（ai SDK v6の型と互換）
+export interface TokenUsage {
+    inputTokens: number;
+    outputTokens: number;
+    totalTokens: number;
 }
 
 // グローバル設定 (~/.config/hibi/hibi.yaml)
